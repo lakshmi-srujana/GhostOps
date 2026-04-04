@@ -40,11 +40,11 @@ The pipeline guarantees context inheritance. Each node digests the preceding age
 > *(Insert screenshots of your UI below by replacing the placeholder URLs)*
 
 ### 📡 Live Telemetry Feed
-![Live Telemetry Feed](https://placehold.co/800x400/0a0a0a/emerald?text=Telemetry+Screenshot_Here)
+![Live Telemetry Feed](Screenshot(55).png)
 *The asynchronous command feed tracking the sequential Alpha ➔ Beta ➔ Gamma execution over Postgres Realtime.*
 
 ### 🎯 Tactical Threat Radar
-![Tactical Threat Radar](https://placehold.co/400x300/0a0a0a/emerald?text=Radar+Screenshot_Here)
+![Tactical Threat Radar](Screenshot(56).png)
 *A randomized, dynamic Threat Matrix projecting immediate Infiltration Risk and Data Integrity vectors on mission deployment.*
 
 ---
