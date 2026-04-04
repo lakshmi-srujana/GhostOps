@@ -3,7 +3,7 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
 export async function GET() {
   return new Response(JSON.stringify({ status: 'Route is ALIVE' }), {
@@ -33,8 +33,13 @@ export async function POST(req: Request) {
       .select();
 
     if (missionError) {
-      console.error('DATABASE ERROR (Missions):', missionError.message);
-      return NextResponse.json({ error: missionError.message }, { status: 500 });
+      console.error('❌ DATABASE ERROR (Missions):', missionError.message, missionError.details);
+      return NextResponse.json({ error: `Mission Creation Failed: ${missionError.message}` }, { status: 500 });
+    }
+
+    if (!missionData || missionData.length === 0) {
+      console.error('❌ DATABASE ERROR: No mission data returned after insert.');
+      return NextResponse.json({ error: 'Mission creation failed to return data.' }, { status: 500 });
     }
 
     const missionId = missionData[0].id;
