@@ -1,115 +1,192 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '../../../lib/supabase';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { NextResponse } from 'next/server'
+import ModelClient from '@azure-rest/ai-inference'
+import { AzureKeyCredential } from '@azure/core-auth'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+import { supabaseAdmin } from '../../../lib/supabase'
 
-export async function GET() {
-  return new Response(JSON.stringify({ status: 'Route is ALIVE' }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
+type MissionRequest = {
+  task?: string
+  voltage?: number
+  amperage?: number
+  isAnomaly?: boolean
+  hardwareStatus?: {
+    voltage?: number
+    amperage?: number
+    isAnomaly?: boolean
+  }
 }
 
-console.log("DEBUG: Key is", process.env.GEMINI_API_KEY ? "FOUND ✅" : "MISSING ❌");
+const githubToken = process.env.GITHUB_TOKEN
+const githubModel = process.env.GITHUB_MODEL || 'gpt-4o'
+
+const client = githubToken
+  ? ModelClient(
+      'https://models.inference.ai.azure.com',
+      new AzureKeyCredential(githubToken)
+    )
+  : null
+
+async function callGitHubModel(prompt: string, agentName: string): Promise<string> {
+  if (!client) {
+    throw new Error('Missing GITHUB_TOKEN in .env.local')
+  }
+
+  const response = await client.path('/chat/completions').post({
+    body: {
+      model: githubModel,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a Ghost Ops hardware security agent. Prioritize current RAW_SENSOR_DATA over all previous context. If Status is BREACH, report hardware compromise immediately.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0.1,
+    },
+  })
+
+  if (response.status !== '200') {
+    const body = response.body as { error?: { message?: string }; message?: string }
+    throw new Error(
+      `${agentName} GitHub Models request failed: ${body?.error?.message || body?.message || response.status}`
+    )
+  }
+
+  const body = response.body as {
+    choices?: Array<{ message?: { content?: string | null } }>
+  }
+
+  return body.choices?.[0]?.message?.content?.trim() || `${agentName} returned no analysis.`
+}
+
+export async function GET() {
+  return NextResponse.json({
+    status: 'Route is ALIVE',
+    provider: 'GitHub Models',
+    model: githubModel,
+    tokenConfigured: Boolean(githubToken),
+  })
+}
 
 export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { task } = body;
+  let missionId: string | undefined
 
-    console.log('--- MISSION INITIALIZED ---');
-    console.log('Objective:', task);
+  try {
+    const body = (await req.json()) as MissionRequest
+    const task = body.task?.trim()
+
+    if (!task) {
+      return NextResponse.json({ error: 'Mission task is required.' }, { status: 400 })
+    }
 
     if (!supabaseAdmin) {
-      console.error('ERROR: supabaseAdmin is null. Check your .env.local keys!');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      return NextResponse.json({ error: 'Server configuration error: missing Supabase service key.' }, { status: 500 })
     }
+
+    const voltage = body.voltage ?? body.hardwareStatus?.voltage ?? 3.3
+    const amperage = body.amperage ?? body.hardwareStatus?.amperage ?? 0.399
+    const isAnomaly = body.isAnomaly ?? body.hardwareStatus?.isAnomaly ?? false
+    const status = isAnomaly ? 'BREACH' : 'NOMINAL'
+    const telemetryString = `[RAW_SENSOR_DATA] V: ${voltage}, A: ${amperage}, Status: ${status}.`
 
     const { data: missionData, error: missionError } = await supabaseAdmin
       .from('missions')
       .insert([{ title: task, status: 'executing' }])
-      .select();
+      .select()
 
     if (missionError) {
-      console.error('❌ DATABASE ERROR (Missions):', missionError.message, missionError.details);
-      return NextResponse.json({ error: `Mission Creation Failed: ${missionError.message}` }, { status: 500 });
+      return NextResponse.json({ error: `Mission Creation Failed: ${missionError.message}` }, { status: 500 })
     }
 
-    if (!missionData || missionData.length === 0) {
-      console.error('❌ DATABASE ERROR: No mission data returned after insert.');
-      return NextResponse.json({ error: 'Mission creation failed to return data.' }, { status: 500 });
+    missionId = missionData?.[0]?.id
+    if (!missionId) {
+      return NextResponse.json({ error: 'Mission creation failed to return data.' }, { status: 500 })
     }
 
-    const missionId = missionData[0].id;
-    console.log('Mission ID Created:', missionId);
+    const { data: lastLogData } = await supabaseAdmin
+      .from('mission_logs')
+      .select('output_data')
+      .order('created_at', { ascending: false })
+      .limit(1)
 
-    console.log("Mission Starting: Sending to Gemini...");
+    const lastLogLine = lastLogData?.[0]?.output_data || 'No previous logs found.'
+    const sharedContext = `
+${telemetryString}
+Mission Objective: ${task}
+Previous System Log: ${lastLogLine}
+`
 
-    // --- AGENT ALPHA: RESEARCHER ---
-    const alphaPrompt = `You are AGENT_ALPHA, a Lead Forensic Researcher. 
-      Analyze this mission objective: "${task}". 
-      Provide a 2-sentence technical reconnaissance report focusing on hardware or digital vulnerabilities. 
-      Keep it cold, professional, and clinical.`;
+    const alphaOutput = await callGitHubModel(
+      `${sharedContext}
+You are Agent Alpha, the Ghost Ops Forensic Lead.
+Analyze only the current telemetry and its forensic implications.
+If Status is BREACH, you must report a physical hardware compromise.
+Keep the response cold, clinical, and under 90 words.`,
+      'Agent Alpha'
+    )
 
-    const alphaResult = await model.generateContent(alphaPrompt);
-    const alphaOutput = alphaResult.response.text();
+    const betaOutput = await callGitHubModel(
+      `${sharedContext}
+Alpha Report: ${alphaOutput}
+You are Agent Beta, a Strategic Analyst.
+Provide a one-sentence threat assessment focused on risk level and immediate action.`,
+      'Agent Beta'
+    )
 
-    console.log("Gemini Response Received! ✅");
+    const gammaOutput = await callGitHubModel(
+      `${sharedContext}
+Beta Assessment: ${betaOutput}
+You are Agent Gamma, a Remediation Engineer.
+Provide a two-sentence tactical countermeasure with one specific hardware fix or code-like guard.`,
+      'Agent Gamma'
+    )
 
-    await supabaseAdmin.from('mission_logs').insert([{
-      mission_id: missionId,
-      agent_name: 'Agent_Alpha',
-      output_data: alphaOutput
-    }]);
+    const { error: logError } = await supabaseAdmin.from('mission_logs').insert([
+      {
+        mission_id: missionId,
+        agent_name: 'Agent_Alpha',
+        output_data: alphaOutput,
+      },
+      {
+        mission_id: missionId,
+        agent_name: 'Agent_Beta',
+        input_data: alphaOutput,
+        output_data: betaOutput,
+      },
+      {
+        mission_id: missionId,
+        agent_name: 'Agent_Gamma',
+        input_data: betaOutput,
+        output_data: gammaOutput,
+      },
+    ])
 
-    await new Promise(res => setTimeout(res, 2000)); // The "Relay" Delay
+    if (logError) {
+      throw new Error(logError.message)
+    }
 
-    // --- AGENT BETA: ANALYST ---
-    const betaPrompt = `You are AGENT_BETA, a Strategic Analyst. 
-      Based on this research from Alpha: "${alphaOutput}", 
-      provide a 1-sentence strategic threat assessment. 
-      Focus on the risk level and immediate action.`;
+    await supabaseAdmin.from('missions').update({ status: 'completed' }).eq('id', missionId)
 
-    const betaResult = await model.generateContent(betaPrompt);
-    const betaOutput = betaResult.response.text();
-
-    await supabaseAdmin.from('mission_logs').insert([{
-      mission_id: missionId,
-      agent_name: 'Agent_Beta',
-      input_data: alphaOutput,
-      output_data: betaOutput
-    }]);
-
-    await new Promise(res => setTimeout(res, 2000)); // The "Relay" Delay
-
-    // --- AGENT GAMMA: REMEDIATION ENGINEER ---
-    const gammaPrompt = `You are AGENT_GAMMA, a Remediation Engineer. 
-      Based on this strategic threat assessment from Beta: "${betaOutput}", 
-      provide a 2-sentence Tactical Countermeasure that includes a snippet of hypothetical security code or a specific hardware fix.`;
-
-    const gammaResult = await model.generateContent(gammaPrompt);
-    const gammaOutput = gammaResult.response.text();
-
-    await supabaseAdmin.from('mission_logs').insert([{
-      mission_id: missionId,
-      agent_name: 'Agent_Gamma',
-      input_data: betaOutput,
-      output_data: gammaOutput
-    }]);
-
-    await supabaseAdmin.from('missions').update({ status: 'completed' }).eq('id', missionId);
-
-    console.log('--- MISSION SUCCESSFUL ---');
-    return new Response(JSON.stringify({
+    return NextResponse.json({
       success: true,
       message: 'Mission data synced to Supabase',
       missionId,
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-
+      provider: 'GitHub Models',
+      model: githubModel,
+    })
   } catch (error: any) {
-    console.error('CRITICAL SYSTEM CRASH:', error.message);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    if (missionId && supabaseAdmin) {
+      await supabaseAdmin.from('missions').update({ status: 'failed' }).eq('id', missionId)
+    }
+
+    console.error('CRITICAL MISSION FAILURE:', error?.message || error)
+    return NextResponse.json(
+      { error: error?.message || 'Mission failed.' },
+      { status: 500 }
+    )
   }
 }

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts'
@@ -20,19 +20,34 @@ import {
   BarChart3,
   Globe2
 } from 'lucide-react'
+import { HardwareProvider, useHardware } from '../context/HardwareContext'
+import SiliconCanvas from '../components/hardware/SiliconCanvas'
 
 export default function Home() {
+  return (
+    <HardwareProvider>
+      <DashboardContent />
+    </HardwareProvider>
+  )
+}
+
+function DashboardContent() {
   const [agents, setAgents] = useState<any[]>([])
   const [logs, setLogs] = useState<any[]>([])
   const [task, setTask] = useState('')
   const [loading, setLoading] = useState(false)
   const feedRef = useRef<HTMLDivElement>(null)
 
-  const [threatMetrics, setThreatMetrics] = useState([
-    { subject: 'Infiltration Risk', A: 90 },
-    { subject: 'Data Integrity', A: 90 },
-    { subject: 'Hardware Stability', A: 90 },
-  ])
+  const { isAnomaly, voltage, amperage } = useHardware()
+
+  const threatMetrics = useMemo(() => {
+    const base = [
+      { subject: 'Infiltration Risk', A: 90 },
+      { subject: 'Data Integrity', A: 90 },
+      { subject: 'Hardware Stability', A: isAnomaly ? 30 : 95 },
+    ]
+    return base
+  }, [isAnomaly])
 
   useEffect(() => {
     async function init() {
@@ -74,17 +89,28 @@ export default function Home() {
   const startMission = async () => {
     if (!task) return
     setLoading(true)
-    setThreatMetrics(generateRandomMetrics())
-    const res = await fetch('/api/mission', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task })
-    })
-    if (res.ok) {
-      setTask('')
-      setTimeout(refreshLogs, 1000)
+    
+    try {
+      const res = await fetch('/api/mission', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          task,
+          voltage: voltage,     
+          amperage: amperage,   
+          isAnomaly: isAnomaly  
+        })
+      })
+
+      if (res.ok) {
+        setTask('')
+        setTimeout(refreshLogs, 1000)
+      }
+    } catch (error) {
+      console.error("Mission deployment failed:", error)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const activeAgents = agents.length
@@ -298,6 +324,27 @@ export default function Home() {
                  </ResponsiveContainer>
                </div>
              </motion.div>
+
+            {/* Digital Twin Telemetry Bento */}
+            <motion.div 
+               initial={{ x: -20, opacity: 0 }} 
+               animate={{ x: 0, opacity: 1 }} 
+               transition={{ duration: 0.6, delay: 0.4 }}
+               className="glass-card flex-1 rounded-[2.5rem] p-6 flex flex-col bg-zinc-900/20 relative overflow-hidden group/tile"
+             >
+               <div className="mb-5 flex items-center justify-between relative z-10">
+                 <div>
+                   <h2 className="text-lg font-bold text-white">Digital Twin</h2>
+                   <p className="mt-1 text-xs font-medium text-zinc-500 uppercase tracking-widest">Physical Layer</p>
+                 </div>
+                 <AnomalyControl />
+               </div>
+
+               <div className="relative flex-1 min-h-[300px] rounded-2xl border border-white/5 bg-black/40 overflow-hidden shadow-2xl">
+                 <SiliconCanvas />
+                 <TelemetryOverlay />
+               </div>
+             </motion.div>
           </div>
 
           {/* ─────── RIGHT PANEL (8 cols) ─────── */}
@@ -426,5 +473,48 @@ export default function Home() {
         </div>
       </div>
     </main>
+  )
+}
+
+function AnomalyControl() {
+  const { injectAnomaly, isAnomaly, voltage, amperage } = useHardware()
+
+  const handleTrigger = async () => {
+    injectAnomaly()
+  }
+
+  return (
+    <button
+      onClick={handleTrigger}
+      disabled={isAnomaly}
+      className={`relative flex h-10 w-10 items-center justify-center rounded-xl border transition-all active:scale-95 disabled:opacity-50 ${
+        isAnomaly 
+        ? 'border-red-500/50 bg-red-500/20 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' 
+        : 'border-white/10 bg-white/5 text-zinc-400 hover:border-emerald-500/40 hover:text-emerald-400'
+      }`}
+      title="Inject Power Spike Anomaly"
+    >
+      <Zap className={`h-5 w-5 ${isAnomaly ? 'animate-pulse' : ''}`} />
+    </button>
+  )
+}
+
+function TelemetryOverlay() {
+  const { voltage, amperage, isAnomaly } = useHardware()
+  return (
+    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none">
+      <div className="flex flex-col gap-1">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Voltage</span>
+        <span className={`font-mono text-lg font-bold tracking-tight leading-none ${isAnomaly ? 'text-red-500' : 'text-white'}`}>
+          {voltage.toFixed(3)}V
+        </span>
+      </div>
+      <div className="flex flex-col gap-1 text-right">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Amperage</span>
+        <span className={`font-mono text-lg font-bold tracking-tight leading-none ${isAnomaly ? 'text-orange-500' : 'text-emerald-400'}`}>
+          {amperage.toFixed(3)}A
+        </span>
+      </div>
+    </div>
   )
 }
