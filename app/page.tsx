@@ -18,10 +18,13 @@ import {
   Lock,
   Wifi,
   BarChart3,
-  Globe2
+  Globe2,
+  Fingerprint
 } from 'lucide-react'
 import { HardwareProvider, useHardware } from '../context/HardwareContext'
 import SiliconCanvas from '../components/hardware/SiliconCanvas'
+import { usePassport } from '../hooks/usePassport'
+import { SiliconPassport } from '../lib/silicon-passport'
 
 export default function Home() {
   return (
@@ -39,6 +42,35 @@ function DashboardContent() {
   const feedRef = useRef<HTMLDivElement>(null)
 
   const { isAnomaly, voltage, amperage } = useHardware()
+
+  const hardwareId = 'ghostops-riscv-core-alpha-7g'
+  const [registeredBlockchainId, setRegisteredBlockchainId] = useState('')
+
+  useEffect(() => {
+    let active = true
+
+    async function registerPassport() {
+      const fingerprint = await SiliconPassport.generateFingerprint(hardwareId)
+      const blockchainId = await SiliconPassport.deriveBlockchainId(fingerprint)
+
+      if (active) {
+        setRegisteredBlockchainId(blockchainId)
+      }
+    }
+
+    registerPassport().catch((error) => {
+      console.error('Failed to register passport identity:', error)
+    })
+
+    return () => {
+      active = false
+    }
+  }, [hardwareId])
+
+  const { fingerprint, blockchainId, anchorRecord, verificationStatus } = usePassport({
+    hardwareId,
+    registeredBlockchainId,
+  })
 
   const threatMetrics = useMemo(() => {
     const base = [
@@ -325,6 +357,49 @@ function DashboardContent() {
                </div>
              </motion.div>
 
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.35 }}
+              className="glass-card rounded-[24px] p-6 relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.08] via-transparent to-emerald-500/[0.05] pointer-events-none" />
+              <div className="relative z-10">
+                <div className="mb-5 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                      <Fingerprint className="h-4 w-4 text-cyan-400" />
+                      Silicon Passport
+                    </h2>
+                    <p className="mt-1 text-xs font-medium text-zinc-500 uppercase tracking-widest">
+                      PUF + ledger identity
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
+                      verificationStatus === 'verified'
+                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                        : verificationStatus === 'mismatch'
+                          ? 'border-red-500/30 bg-red-500/10 text-red-400'
+                          : verificationStatus === 'error'
+                            ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                            : 'border-white/10 bg-white/5 text-zinc-400'
+                    }`}
+                  >
+                    {verificationStatus}
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-xs font-mono">
+                  <PassportRow label="Hardware ID" value={hardwareId} />
+                  <PassportRow label="Silicon Fingerprint" value={fingerprint} />
+                  <PassportRow label="Blockchain DID" value={blockchainId} />
+                  <PassportRow label="Registered ID" value={registeredBlockchainId || null} />
+                  <PassportRow label="Anchor Tx" value={anchorRecord?.transactionHash ?? null} />
+                </div>
+              </div>
+            </motion.div>
+
             {/* Digital Twin Telemetry Bento */}
             <motion.div 
                initial={{ x: -20, opacity: 0 }} 
@@ -473,6 +548,17 @@ function DashboardContent() {
         </div>
       </div>
     </main>
+  )
+}
+
+function PassportRow({ label, value }: { label: string; value: string | null }) {
+  const displayValue = value ? `${value.slice(0, 18)}...${value.slice(-10)}` : 'Initializing...'
+
+  return (
+    <div className="rounded-2xl border border-white/5 bg-[#111111]/75 px-4 py-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">{label}</p>
+      <p className="mt-1 break-all text-zinc-200">{displayValue}</p>
+    </div>
   )
 }
 

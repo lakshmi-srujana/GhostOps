@@ -74,8 +74,8 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
-# Google Generative AI (Requires gemini-2.5-flash compliance)
-GEMINI_API_KEY=your-google-gemini-key
+# Generative AI
+GITHUB_TOKEN=your-github-token
 ```
 
 ### 3. Server Ignition
