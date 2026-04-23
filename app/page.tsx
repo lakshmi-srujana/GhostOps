@@ -149,6 +149,17 @@ function DashboardContent() {
   const latestLog = logs[0]
   const onlinePulse = latestLog ? 'bg-emerald-400' : 'bg-red-500'
   const sysHealth = activeAgents > 0 ? '99.9%' : '84.2%'
+  const statusCards = [
+    { icon: <Wifi className="h-3.5 w-3.5" />, label: 'Network', value: `${sysHealth}`, color: 'text-white' },
+    { icon: <Database className="h-3.5 w-3.5" />, label: 'Logs', value: String(logs.length), color: 'text-white' },
+    {
+      icon: <Radio className="h-3.5 w-3.5" />,
+      label: 'Telemetry',
+      value: latestLog ? 'Live' : 'Standby',
+      color: latestLog ? 'text-emerald-400' : 'text-zinc-500',
+      dot: true,
+    },
+  ]
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-[#020202] text-zinc-300 font-sans">
@@ -163,7 +174,7 @@ function DashboardContent() {
           initial={{ y: -20, opacity: 0 }} 
           animate={{ y: 0, opacity: 1 }} 
           transition={{ duration: 0.6 }}
-          className="mb-8 glass-panel flex flex-col gap-5 rounded-[20px] px-6 py-4 lg:flex-row lg:items-center lg:justify-between"
+          className="mb-8 glass-panel rounded-[20px] px-6 py-4"
         >
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-900/10 ring-1 ring-emerald-500/30 animate-float shadow-[0_0_20px_rgba(16,185,129,0.2)]">
@@ -174,42 +185,85 @@ function DashboardContent() {
               <h1 className="text-2xl font-bold tracking-tight text-white/90 drop-shadow-md">Ghost Ops</h1>
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {[
-              { icon: <Wifi className="h-3.5 w-3.5" />, label: 'Network', value: `${sysHealth}`, color: 'text-white' },
-              { icon: <Database className="h-3.5 w-3.5" />, label: 'Logs', value: String(logs.length), color: 'text-white' },
-              {
-                icon: <Radio className="h-3.5 w-3.5" />,
-                label: 'Telemetry',
-                value: latestLog ? 'Live' : 'Standby',
-                color: latestLog ? 'text-emerald-400' : 'text-zinc-500',
-                dot: true,
-              },
-            ].map((s) => (
-              <div key={s.label} className="flex items-center gap-3 rounded-xl border border-white/5 bg-[#0a0a0a]/50 px-4 py-2.5 backdrop-blur-md transition-all hover:bg-white/[0.03]">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-zinc-400">
-                  {s.icon}
-                </div>
-                <div>
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{s.label}</p>
-                  <p className={`mt-0.5 flex items-center gap-1.5 text-xs font-bold tracking-wide ${s.color}`}>
-                    {s.dot && (
-                      <span className={`relative inline-block h-1.5 w-1.5 rounded-full ${latestLog ? 'bg-emerald-400 pulse-dot' : 'bg-red-500'}`} />
-                    )}
-                    {s.value}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
         </motion.nav>
 
         {/* ── BENTO GRID ── */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
           {/* ─────── LEFT PANEL (4 cols) ─────── */}
-          <div className="flex flex-col gap-6 md:col-span-5 lg:col-span-4">
+          <div className="flex flex-col gap-6 md:col-span-5 lg:col-span-4 lg:flex-col">
+
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.05 }}
+              className="glass-panel rounded-[24px] p-4"
+            >
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                {statusCards.map((s) => (
+                  <div
+                    key={s.label}
+                    className="flex items-center gap-3 rounded-xl border border-emerald-500/10 bg-[#0a0a0a]/60 px-3 py-2.5 backdrop-blur-md transition-all hover:bg-white/[0.03]"
+                  >
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-zinc-400">
+                      {s.icon}
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{s.label}</p>
+                      <p className={`mt-0.5 flex items-center gap-1.5 text-xs font-bold tracking-wide ${s.color}`}>
+                        {s.dot && (
+                          <span className={`relative inline-block h-1.5 w-1.5 rounded-full ${latestLog ? 'bg-emerald-400 pulse-dot' : 'bg-red-500'}`} />
+                        )}
+                        {s.value}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.08 }}
+              className="glass-panel rounded-[24px] p-4 relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.08] via-transparent to-emerald-900/[0.06] pointer-events-none" />
+              <div className="relative z-10">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="flex items-center gap-2 text-sm font-bold text-white">
+                      <Fingerprint className="h-4 w-4 text-emerald-400" />
+                      Silicon Passport
+                    </h2>
+                    <p className="mt-1 text-xs font-medium uppercase tracking-widest text-zinc-500">
+                      PUF + ledger identity
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${
+                      verificationStatus === 'verified'
+                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                        : verificationStatus === 'mismatch'
+                          ? 'border-red-500/30 bg-red-500/10 text-red-400'
+                          : verificationStatus === 'error'
+                            ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                            : 'border-white/10 bg-white/5 text-zinc-400'
+                    }`}
+                  >
+                    {verificationStatus}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <PassportRow label="Hardware ID" value={hardwareId} />
+                  <PassportRow label="Fingerprint" value={fingerprint} truncateAsHash />
+                  <PassportRow label="DID" value={blockchainId} truncateAsHash />
+                  <PassportRow label="Registered" value={registeredBlockchainId || null} truncateAsHash />
+                  <PassportRow label="Anchor Tx" value={anchorRecord?.transactionHash ?? null} truncateAsHash />
+                </div>
+              </div>
+            </motion.div>
 
             {/* Mission Entry Bento */}
             <motion.div 
@@ -356,49 +410,6 @@ function DashboardContent() {
                  </ResponsiveContainer>
                </div>
              </motion.div>
-
-            <motion.div
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.35 }}
-              className="glass-card rounded-[24px] p-6 relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.08] via-transparent to-emerald-500/[0.05] pointer-events-none" />
-              <div className="relative z-10">
-                <div className="mb-5 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                      <Fingerprint className="h-4 w-4 text-cyan-400" />
-                      Silicon Passport
-                    </h2>
-                    <p className="mt-1 text-xs font-medium text-zinc-500 uppercase tracking-widest">
-                      PUF + ledger identity
-                    </p>
-                  </div>
-                  <span
-                    className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
-                      verificationStatus === 'verified'
-                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                        : verificationStatus === 'mismatch'
-                          ? 'border-red-500/30 bg-red-500/10 text-red-400'
-                          : verificationStatus === 'error'
-                            ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-                            : 'border-white/10 bg-white/5 text-zinc-400'
-                    }`}
-                  >
-                    {verificationStatus}
-                  </span>
-                </div>
-
-                <div className="space-y-3 text-xs font-mono">
-                  <PassportRow label="Hardware ID" value={hardwareId} />
-                  <PassportRow label="Silicon Fingerprint" value={fingerprint} />
-                  <PassportRow label="Blockchain DID" value={blockchainId} />
-                  <PassportRow label="Registered ID" value={registeredBlockchainId || null} />
-                  <PassportRow label="Anchor Tx" value={anchorRecord?.transactionHash ?? null} />
-                </div>
-              </div>
-            </motion.div>
 
             {/* Digital Twin Telemetry Bento */}
             <motion.div 
@@ -551,15 +562,36 @@ function DashboardContent() {
   )
 }
 
-function PassportRow({ label, value }: { label: string; value: string | null }) {
-  const displayValue = value ? `${value.slice(0, 18)}...${value.slice(-10)}` : 'Initializing...'
+function PassportRow({
+  label,
+  value,
+  truncateAsHash = false,
+}: {
+  label: string
+  value: string | null
+  truncateAsHash?: boolean
+}) {
+  const displayValue = value
+    ? truncateAsHash
+      ? truncateHash(value)
+      : value
+    : 'Initializing...'
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-[#111111]/75 px-4 py-3">
+    <div className="rounded-xl border border-white/5 bg-[#111111]/75 px-3 py-2">
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">{label}</p>
-      <p className="mt-1 break-all text-zinc-200">{displayValue}</p>
+      <p className="mt-1 break-all font-mono text-xs text-zinc-200">{displayValue}</p>
     </div>
   )
+}
+
+function truncateHash(value: string) {
+  if (!value) {
+    return value
+  }
+
+  const normalized = value.startsWith('0x') ? value : `0x${value}`
+  return `${normalized.slice(0, 5)}...${normalized.slice(-2)}`
 }
 
 function AnomalyControl() {
