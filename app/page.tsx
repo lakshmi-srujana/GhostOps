@@ -595,24 +595,23 @@ function truncateHash(value: string) {
 }
 
 function AnomalyControl() {
-  const { injectAnomaly, isAnomaly, voltage, amperage } = useHardware()
-
-  const handleTrigger = async () => {
-    injectAnomaly()
-  }
+  const { toggleAnomaly, isAnomaly } = useHardware()
 
   return (
     <button
-      onClick={handleTrigger}
-      disabled={isAnomaly}
-      className={`relative flex h-10 w-10 items-center justify-center rounded-xl border transition-all active:scale-95 disabled:opacity-50 ${
+      onClick={toggleAnomaly}
+      aria-pressed={isAnomaly}
+      className={`relative flex h-10 min-w-[122px] items-center justify-center gap-2 rounded-xl border px-3 transition-all active:scale-95 ${
         isAnomaly 
         ? 'border-red-500/50 bg-red-500/20 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' 
         : 'border-white/10 bg-white/5 text-zinc-400 hover:border-emerald-500/40 hover:text-emerald-400'
       }`}
-      title="Inject Power Spike Anomaly"
+      title={isAnomaly ? 'Deactivate Power Spike Anomaly' : 'Inject Power Spike Anomaly'}
     >
       <Zap className={`h-5 w-5 ${isAnomaly ? 'animate-pulse' : ''}`} />
+      <span className="text-[10px] font-bold uppercase tracking-[0.18em]">
+        {isAnomaly ? 'Spike On' : 'Spike Off'}
+      </span>
     </button>
   )
 }
@@ -620,18 +619,38 @@ function AnomalyControl() {
 function TelemetryOverlay() {
   const { voltage, amperage, isAnomaly } = useHardware()
   return (
-    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none">
-      <div className="flex flex-col gap-1">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Voltage</span>
-        <span className={`font-mono text-lg font-bold tracking-tight leading-none ${isAnomaly ? 'text-red-500' : 'text-white'}`}>
-          {voltage.toFixed(3)}V
+    <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/10 bg-black/55 px-4 py-3 backdrop-blur-md pointer-events-none">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Telemetry</span>
+        <span className={`rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
+          isAnomaly
+            ? 'border-red-500/40 bg-red-500/15 text-red-400'
+            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+        }`}>
+          {isAnomaly ? 'Spike Detected' : 'Nominal'}
         </span>
       </div>
-      <div className="flex flex-col gap-1 text-right">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Amperage</span>
-        <span className={`font-mono text-lg font-bold tracking-tight leading-none ${isAnomaly ? 'text-orange-500' : 'text-emerald-400'}`}>
-          {amperage.toFixed(3)}A
-        </span>
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Voltage</span>
+          <span className={`font-mono text-lg font-bold tracking-tight leading-none ${isAnomaly ? 'text-red-500' : 'text-white'}`}>
+            {voltage.toFixed(3)}V
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 text-right">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Amperage</span>
+          <span className={`font-mono text-lg font-bold tracking-tight leading-none ${isAnomaly ? 'text-orange-500' : 'text-emerald-400'}`}>
+            {amperage.toFixed(3)}A
+          </span>
+        </div>
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+        <div
+          className={`h-full rounded-full transition-all ${
+            isAnomaly ? 'bg-gradient-to-r from-red-500 via-orange-500 to-amber-400' : 'bg-gradient-to-r from-emerald-500 to-cyan-400'
+          }`}
+          style={{ width: `${isAnomaly ? 92 : 41}%` }}
+        />
       </div>
     </div>
   )

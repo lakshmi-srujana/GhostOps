@@ -10,26 +10,34 @@ interface HardwareState {
 }
 
 interface HardwareContextType extends HardwareState {
+  toggleAnomaly: () => void
   injectAnomaly: () => void
   resetAnomaly: () => void
 }
 
 const HardwareContext = createContext<HardwareContextType | undefined>(undefined)
 
-const AMPS_THRESHOLD = 0.405;
+const STORAGE_KEY = 'ghostops.hardware.anomaly'
+const NOMINAL_VOLTAGE = 3.3
+const NOMINAL_AMPERAGE = 0.399
+const SPIKE_VOLTAGE = 5.12
+const SPIKE_AMPERAGE = 0.821
 
 export const HardwareProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [voltage, setVoltage] = useState(3.3)
-  const [amperage, setAmperage] = useState(0.399)
   const [isAnomaly, setIsAnomaly] = useState(false)
+  const [voltage, setVoltage] = useState(NOMINAL_VOLTAGE)
+  const [amperage, setAmperage] = useState(NOMINAL_AMPERAGE)
   const lastLoggedAnomaly = useRef(false)
 
-  // Unbreakable Sync: isAnomaly is a direct result of amperage
   useEffect(() => {
-    setIsAnomaly(amperage > AMPS_THRESHOLD)
-  }, [amperage])
+    if (typeof window === 'undefined') {
+      return
+    }
 
-  // Reactive Logging: Trigger [CRITICAL] log when amperage crosses threshold
+    const storedState = window.localStorage.getItem(STORAGE_KEY) === 'true'
+    setIsAnomaly(storedState)
+  }, [])
+
   useEffect(() => {
     if (isAnomaly && !lastLoggedAnomaly.current) {
       const logSpike = async () => {
@@ -51,45 +59,58 @@ export const HardwareProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [isAnomaly, voltage, amperage])
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(STORAGE_KEY, String(isAnomaly))
+    }
+  }, [isAnomaly])
+
+  useEffect(() => {
     const interval = setInterval(() => {
       const time = Date.now() / 1000
-      
-      // Smoother, organic fluctuation
+
+      if (isAnomaly) {
+        const vJitter = (Math.random() - 0.5) * 0.08
+        const aJitter = (Math.random() - 0.5) * 0.08
+
+        setVoltage(SPIKE_VOLTAGE + vJitter)
+        setAmperage(Math.max(0.779, SPIKE_AMPERAGE + aJitter))
+        return
+      }
+
       const vDrift = Math.sin(time) * 0.002
-      
-      setVoltage(3.3 + vDrift)
-      
-      setAmperage((prev) => {
-        // Only apply organic drift if NOT in an active breach spike
-        if (prev > AMPS_THRESHOLD) {
-           return 0.8 + (Math.random() - 0.5) * 0.1 // Active Breach Jitter
-        }
-        // Idle Calibration: amperage stays between 0.395A and 0.403A
-        // Centered around 0.399 with 0.004 amplitude
-        const aDrift = Math.sin(time * 1.2) * 0.004
-        return 0.399 + aDrift 
-      })
+      const aDrift = Math.sin(time * 1.2) * 0.004
+
+      setVoltage(NOMINAL_VOLTAGE + vDrift)
+      setAmperage(NOMINAL_AMPERAGE + aDrift)
     }, 500)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [isAnomaly])
 
   const injectAnomaly = useCallback(() => {
-    setAmperage(0.85) // Triggers isAnomaly via useEffect
+    setIsAnomaly(true)
+    setVoltage(SPIKE_VOLTAGE)
+    setAmperage(SPIKE_AMPERAGE)
     console.log('[SYSTEM]: Unidentified Power Spike detected in Silicon Sector 7-G.')
-    
-    // Auto-reset after 1.5 seconds (Cooldown Protocol)
-    setTimeout(() => {
-      setAmperage(0.399)
-    }, 1500)
   }, [])
 
   const resetAnomaly = useCallback(() => {
-    setAmperage(0.399)
+    setIsAnomaly(false)
+    setVoltage(NOMINAL_VOLTAGE)
+    setAmperage(NOMINAL_AMPERAGE)
+  }, [])
+
+  const toggleAnomaly = useCallback(() => {
+    setIsAnomaly((current) => {
+      const next = !current
+      setVoltage(next ? SPIKE_VOLTAGE : NOMINAL_VOLTAGE)
+      setAmperage(next ? SPIKE_AMPERAGE : NOMINAL_AMPERAGE)
+      return next
+    })
   }, [])
 
   return (
-    <HardwareContext.Provider value={{ voltage, amperage, isAnomaly, injectAnomaly, resetAnomaly }}>
+    <HardwareContext.Provider value={{ voltage, amperage, isAnomaly, toggleAnomaly, injectAnomaly, resetAnomaly }}>
       {children}
     </HardwareContext.Provider>
   )
