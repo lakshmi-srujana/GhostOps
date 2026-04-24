@@ -22,6 +22,7 @@ const NOMINAL_VOLTAGE = 3.3
 const NOMINAL_AMPERAGE = 0.399
 const SPIKE_VOLTAGE = 5.12
 const SPIKE_AMPERAGE = 0.821
+const AMPS_THRESHOLD = 0.405
 
 export const HardwareProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAnomaly, setIsAnomaly] = useState(false)
