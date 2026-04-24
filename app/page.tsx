@@ -186,7 +186,7 @@ function DashboardContent() {
       </motion.nav>
 
       {/* ── THREE-COLUMN GRID ── */}
-      <div className="relative z-10 flex-1 overflow-hidden grid grid-cols-[280px_1fr_320px] gap-4 p-4">
+      <div className="relative z-10 flex-1 overflow-hidden grid grid-cols-[300px_1.5fr_320px] gap-4 p-4">
 
         {/* ═════ LEFT COLUMN (280px) ═════ */}
         <div className="flex flex-col gap-4 overflow-y-auto">
@@ -208,8 +208,8 @@ function DashboardContent() {
                     {s.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-zinc-500 truncate">{s.label}</p>
-                    <p className={`mt-0.5 flex items-center gap-1 text-xs font-bold tracking-tight truncate ${s.color}`}>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-500 truncate">{s.label}</p>
+                    <p className={`mt-0.5 flex items-center gap-1 text-sm font-bold tracking-tight truncate ${s.color}`}>
                       {s.dot && (
                         <span className={`relative inline-block h-1.5 w-1.5 rounded-full flex-shrink-0 ${latestLog ? 'bg-emerald-400 pulse-dot' : 'bg-red-500'}`} />
                       )}
@@ -231,16 +231,16 @@ function DashboardContent() {
             <div className="relative z-10">
               <div className="mb-2 flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <h2 className="flex items-center gap-1.5 text-xs font-bold text-white truncate">
+                  <h2 className="flex items-center gap-1.5 text-sm font-bold text-white truncate">
                     <Fingerprint className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
                     <span className="truncate">Passport</span>
                   </h2>
-                  <p className="mt-1 text-[7px] font-medium uppercase tracking-widest text-zinc-500 truncate">
+                  <p className="mt-1 text-[8px] font-medium uppercase tracking-widest text-zinc-500 truncate">
                     PUF + ledger
                   </p>
                 </div>
                 <span
-                  className={`rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] flex-shrink-0 whitespace-nowrap ${
+                  className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] flex-shrink-0 whitespace-nowrap ${
                     verificationStatus === 'verified'
                       ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
                       : verificationStatus === 'mismatch'
@@ -263,6 +263,45 @@ function DashboardContent() {
               </div>
             </div>
           </motion.div>
+
+          {/* Telemetry Readings */}
+          <motion.div
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.12 }}
+            className="glass-panel rounded-[16px] p-3 shrink-0"
+          >
+            <div className="relative z-10">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="text-sm font-bold text-emerald-400">Telemetry</h3>
+                <span className={`rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] ${isAnomaly ? 'border-red-500/40 bg-red-500/15 text-red-400' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'}`}>
+                  {isAnomaly ? 'Spike' : 'Nominal'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[8px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Voltage</span>
+                  <span className={`font-mono text-base font-bold tracking-tight leading-none ${isAnomaly ? 'text-red-500' : 'text-white'}`}>
+                    {voltage.toFixed(2)}V
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1 text-right">
+                  <span className="text-[8px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Amperage</span>
+                  <span className={`font-mono text-base font-bold tracking-tight leading-none ${isAnomaly ? 'text-orange-500' : 'text-emerald-400'}`}>
+                    {amperage.toFixed(2)}A
+                  </span>
+                </div>
+              </div>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    isAnomaly ? 'bg-gradient-to-r from-red-500 via-orange-500 to-amber-400' : 'bg-gradient-to-r from-emerald-500 to-cyan-400'
+                  }`}
+                  style={{ width: `${isAnomaly ? 92 : 41}%` }}
+                />
+              </div>
+            </div>
+          </motion.div>
         </div>
 
         {/* ═════ CENTER COLUMN (1fr) ═════ */}
@@ -281,24 +320,24 @@ function DashboardContent() {
                   <Terminal className="h-3.5 w-3.5 text-emerald-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-sm font-bold text-white tracking-wide truncate">Live Telemetry</h2>
-                  <p className="text-[8px] font-mono text-zinc-500 truncate">Forensic-grade capture active</p>
+                  <h2 className="text-lg font-bold text-white tracking-wide truncate">Live Telemetry</h2>
+                  <p className="text-[10px] font-mono text-zinc-500 truncate">Forensic-grade capture active</p>
                 </div>
               </div>
-              <div className="hidden sm:flex items-center gap-3 text-[9px]">
+              <div className="hidden sm:flex items-center gap-3 text-[11px]">
                 <div className="text-right flex items-center gap-1.5">
                   <BarChart3 className="h-3 w-3 text-zinc-500" />
                   <div>
-                    <span className="block text-[7px] font-bold uppercase tracking-[0.15em] text-zinc-600">Integrity</span>
-                    <p className="text-xs font-mono font-bold text-white">100.0%</p>
+                    <span className="block text-[9px] font-bold uppercase tracking-[0.15em] text-zinc-600">Integrity</span>
+                    <p className="text-base font-mono font-bold text-white">100.0%</p>
                   </div>
                 </div>
                 <div className="w-[1px] h-5 bg-white/10"></div>
                 <div className="text-right flex items-center gap-1.5">
                   <Waves className="h-3 w-3 text-emerald-500" />
                   <div>
-                    <span className="block text-[7px] font-bold uppercase tracking-[0.15em] text-zinc-600">Stream</span>
-                    <p className="text-xs font-mono font-bold text-emerald-400">Secure</p>
+                    <span className="block text-[9px] font-bold uppercase tracking-[0.15em] text-zinc-600">Stream</span>
+                    <p className="text-base font-mono font-bold text-emerald-400">Secure</p>
                   </div>
                 </div>
               </div>
@@ -318,11 +357,11 @@ function DashboardContent() {
                       initial={{ opacity: 0, x: -10, scale: 0.98 }}
                       animate={{ opacity: 1, x: 0, scale: 1 }}
                       transition={{ duration: 0.3, ease: 'easeOut' }}
-                      className="group flex gap-3 font-mono text-[11px]"
+                      className="group flex gap-3 font-mono text-[12px] leading-relaxed"
                     >
                       {/* Timeline Track */}
                       <div className="relative flex flex-col items-center flex-shrink-0">
-                        <div className={`h-2 w-2 rounded-full z-10 my-1 ${
+                        <div className={`h-2.5 w-2.5 rounded-full z-10 my-1.5 ${
                           idx === 0 && log.agent_name !== 'Agent_Gamma' ? 'bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
                           : log.agent_name === 'Agent_Gamma' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
                           : 'bg-emerald-500/30'
@@ -333,19 +372,19 @@ function DashboardContent() {
                       </div>
 
                       {/* Content Card */}
-                      <div className={`flex-1 rounded-[12px] border px-3 py-2 backdrop-blur-sm transition-all hover:bg-[#151515]/80 ${
+                      <div className={`flex-1 rounded-[12px] border px-3 py-2.5 backdrop-blur-sm transition-all hover:bg-[#151515]/80 ${
                         log.agent_name === 'Agent_Gamma' 
                         ? 'bg-[#201004]/50 border-amber-500/30 text-amber-500' 
                         : 'bg-[#111111]/60 border-white/[0.04] hover:border-white/10'
                       }`}>
-                        <div className={`mb-1.5 flex flex-wrap items-center justify-between gap-1.5 border-b pb-1.5 ${
+                        <div className={`mb-2 flex flex-wrap items-center justify-between gap-2 border-b pb-2 ${
                           log.agent_name === 'Agent_Gamma' ? 'border-amber-500/10' : 'border-white/5'
                         }`}>
-                          <div className="flex items-center gap-2 text-[10px] font-bold">
-                            <span className={`text-[9px] font-mono ${log.agent_name === 'Agent_Gamma' ? 'text-amber-500/80' : 'text-zinc-600'}`}>
+                          <div className="flex items-center gap-2 text-[12px] font-bold">
+                            <span className={`text-[11px] font-mono ${log.agent_name === 'Agent_Gamma' ? 'text-amber-500/80' : 'text-zinc-600'}`}>
                               #{displayId}
                             </span>
-                            <span className={`text-[9px] border px-1.5 py-0.5 rounded uppercase font-bold ${
+                            <span className={`text-[11px] border px-1.5 py-0.5 rounded uppercase font-bold ${
                               log.agent_name === 'Agent_Gamma' 
                               ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' 
                               : 'text-emerald-500 bg-emerald-500/5 border-emerald-500/20'
@@ -353,7 +392,7 @@ function DashboardContent() {
                               {log.agent_name}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 text-[9px] text-zinc-500">
+                          <div className="flex items-center gap-2 text-[10px] text-zinc-500">
                             <span className="hidden sm:inline bg-zinc-900 rounded-md px-1.5 py-0.5 border border-white/5 truncate">
                               {log.missions?.title || 'Execution Stream'}
                             </span>
@@ -362,7 +401,7 @@ function DashboardContent() {
                             </span>
                           </div>
                         </div>
-                        <p className="leading-relaxed text-zinc-300 font-mono text-[10px] whitespace-pre-wrap break-words">
+                        <p className="leading-relaxed text-zinc-300 font-mono text-[11px] whitespace-pre-wrap break-words">
                           {log.output_data || log.input_data || 'No data chunk received.'}
                         </p>
                       </div>
@@ -377,8 +416,8 @@ function DashboardContent() {
                     <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-white/5 bg-[#111111]">
                       <Activity className="h-5 w-5 text-zinc-600" />
                     </div>
-                    <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Feed Empty</p>
-                    <p className="mt-1.5 text-[10px] text-zinc-600 font-sans max-w-[180px]">
+                    <p className="mt-4 text-sm font-bold uppercase tracking-[0.2em] text-zinc-400">Feed Empty</p>
+                    <p className="mt-1.5 text-[11px] text-zinc-600 font-sans max-w-[180px]">
                       Awaiting commands. Execute a directive to commence telemetry.
                     </p>
                   </div>
@@ -399,11 +438,11 @@ function DashboardContent() {
             className="glass-card rounded-[16px] p-3 shrink-0"
           >
             <div className="mb-3 relative z-10">
-              <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
+              <h2 className="text-base font-bold text-white flex items-center gap-1.5">
                 <Zap className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
                 <span className="truncate">Mission Control</span>
               </h2>
-              <p className="mt-0.5 text-[8px] font-medium text-zinc-500 uppercase tracking-widest truncate">Deploy Objective</p>
+              <p className="mt-0.5 text-[9px] font-medium text-zinc-500 uppercase tracking-widest truncate">Deploy Objective</p>
             </div>
 
             <div className="space-y-2.5 relative z-10">
@@ -418,7 +457,7 @@ function DashboardContent() {
                     onChange={(e) => setTask(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !loading) startMission() }}
                     placeholder="Initialize scan..."
-                    className="w-full bg-transparent px-2 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none"
+                    className="w-full bg-transparent px-2 py-2.5 text-sm text-white placeholder:text-zinc-600 outline-none"
                   />
                 </div>
               </div>
@@ -426,7 +465,7 @@ function DashboardContent() {
               <button
                 onClick={startMission}
                 disabled={loading}
-                className="glow-btn flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-emerald-400 to-emerald-600 px-3 py-2 text-xs font-bold text-emerald-950 transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] border border-emerald-300/20"
+                className="glow-btn flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-emerald-400 to-emerald-600 px-3 py-2 text-sm font-bold text-emerald-950 transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] border border-emerald-300/20"
               >
                 {loading ? (
                   <Activity className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} />
@@ -439,16 +478,16 @@ function DashboardContent() {
               </button>
             </div>
 
-            <div className="mt-3 flex justify-between items-end border-t border-white/[0.05] pt-2 relative z-10 text-[8px]">
+            <div className="mt-3 flex justify-between items-end border-t border-white/[0.05] pt-2 relative z-10 text-[9px]">
               <div className="min-w-0">
                 <p className="font-bold uppercase tracking-[0.15em] text-zinc-600">Protocol</p>
-                <p className="mt-0.5 flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+                <p className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-emerald-400">
                   <Lock className="h-2.5 w-2.5 flex-shrink-0" /> Encrypted
                 </p>
               </div>
               <div className="text-right">
                 <p className="font-bold uppercase tracking-[0.15em] text-zinc-600">Last Sync</p>
-                <p className="mt-0.5 text-[9px] font-bold text-white/80 font-mono tracking-wider whitespace-nowrap">
+                <p className="mt-0.5 text-[10px] font-bold text-white/80 font-mono tracking-wider whitespace-nowrap">
                   {latestLog ? new Date(latestLog.created_at).toLocaleTimeString() : '--:--:--'}
                 </p>
               </div>
@@ -464,15 +503,14 @@ function DashboardContent() {
           >
             <div className="mb-2 flex items-center justify-between relative z-10 shrink-0">
               <div className="flex-1 min-w-0">
-                <h2 className="text-sm font-bold text-white truncate">Digital Twin</h2>
-                <p className="mt-0.5 text-[8px] font-medium text-zinc-500 uppercase tracking-widest truncate">Physical Layer</p>
+                <h2 className="text-base font-bold text-white truncate">Digital Twin</h2>
+                <p className="mt-0.5 text-[9px] font-medium text-zinc-500 uppercase tracking-widest truncate">Physical Layer</p>
               </div>
               <AnomalyControl />
             </div>
 
             <div className="relative flex-1 rounded-xl border border-white/5 bg-black/40 overflow-hidden shadow-2xl min-h-0" style={{ transform: 'scale(0.9)', transformOrigin: 'top center' }}>
               <SiliconCanvas />
-              <TelemetryOverlay />
             </div>
           </motion.div>
 
@@ -485,7 +523,7 @@ function DashboardContent() {
           >
             <div className="absolute inset-0 z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05] pointer-events-none" />
             <div className="mb-2 flex items-center justify-between relative z-10 shrink-0">
-              <h2 className="text-sm font-bold text-emerald-500">Threat Matrix</h2>
+              <h2 className="text-base font-bold text-emerald-500">Threat Matrix</h2>
             </div>
             <div className="w-full relative z-10 flex-1 min-h-0 -ml-2" style={{ transform: 'scale(0.9)', transformOrigin: 'top center' }}>
               <ResponsiveContainer width="100%" height="100%" minHeight={120}>
@@ -522,8 +560,8 @@ function PassportRow({
 
   return (
     <div className="rounded-lg border border-white/5 bg-[#111111]/75 px-2 py-1.5">
-      <p className="text-[7px] font-bold uppercase tracking-[0.14em] text-zinc-500 truncate">{label}</p>
-      <p className="mt-0.5 break-all font-mono text-[8px] text-zinc-200 truncate">{displayValue}</p>
+      <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-zinc-500">{label}</p>
+      <p className="mt-1 break-all font-mono text-[9px] text-zinc-200 text-left">{displayValue}</p>
     </div>
   )
 }
@@ -552,7 +590,7 @@ function AnomalyControl() {
       title={isAnomaly ? 'Deactivate Power Spike Anomaly' : 'Inject Power Spike Anomaly'}
     >
       <Zap className={`h-4 w-4 flex-shrink-0 ${isAnomaly ? 'animate-pulse' : ''}`} />
-      <span className="text-[9px] font-bold uppercase tracking-[0.14em] truncate">
+      <span className="text-[10px] font-bold uppercase tracking-[0.14em] truncate">
         {isAnomaly ? 'Spike On' : 'Spike Off'}
       </span>
     </button>
@@ -564,8 +602,8 @@ function TelemetryOverlay() {
   return (
     <div className="absolute bottom-3 left-3 right-3 rounded-lg border border-white/10 bg-black/55 px-3 py-2 backdrop-blur-md pointer-events-none">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-[8px] font-bold uppercase tracking-[0.15em] text-zinc-500">Telemetry</span>
-        <span className={`rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] flex-shrink-0 ${
+        <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-zinc-500">Telemetry</span>
+        <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] flex-shrink-0 ${
           isAnomaly
             ? 'border-red-500/40 bg-red-500/15 text-red-400'
             : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
@@ -575,14 +613,14 @@ function TelemetryOverlay() {
       </div>
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[7px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Voltage</span>
-          <span className={`font-mono text-sm font-bold tracking-tight leading-none ${isAnomaly ? 'text-red-500' : 'text-white'}`}>
+          <span className="text-[8px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Voltage</span>
+          <span className={`font-mono text-base font-bold tracking-tight leading-none ${isAnomaly ? 'text-red-500' : 'text-white'}`}>
             {voltage.toFixed(2)}V
           </span>
         </div>
         <div className="flex flex-col gap-0.5 text-right">
-          <span className="text-[7px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Amperage</span>
-          <span className={`font-mono text-sm font-bold tracking-tight leading-none ${isAnomaly ? 'text-orange-500' : 'text-emerald-400'}`}>
+          <span className="text-[8px] font-bold uppercase tracking-widest text-zinc-500 leading-none">Amperage</span>
+          <span className={`font-mono text-base font-bold tracking-tight leading-none ${isAnomaly ? 'text-orange-500' : 'text-emerald-400'}`}>
             {amperage.toFixed(2)}A
           </span>
         </div>
