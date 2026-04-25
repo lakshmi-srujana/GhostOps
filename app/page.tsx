@@ -174,53 +174,45 @@ function DashboardContent() {
         transition={{ duration: 0.6 }}
         className="relative z-10 glass-panel rounded-0 m-0 px-6 py-3 border-b border-white/5 shrink-0"
       >
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-900/10 ring-1 ring-emerald-500/30 animate-float shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-            <Shield className="h-5 w-5 text-emerald-400" strokeWidth={1.5} />
+        <div className="flex items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-900/10 ring-1 ring-emerald-500/30 animate-float shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+              <Shield className="h-5 w-5 text-emerald-400" strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-500/80">Command Hub</p>
+              <h1 className="text-2xl font-bold tracking-tight text-white/90 drop-shadow-md">Ghost Ops</h1>
+            </div>
           </div>
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-500/80">Command Hub</p>
-            <h1 className="text-xl font-bold tracking-tight text-white/90 drop-shadow-md">Ghost Ops</h1>
+
+          {/* Status Cards in Header */}
+          <div className="flex items-center gap-3">
+            {statusCards.map((s) => (
+              <div
+                key={s.label}
+                className="flex flex-col items-center gap-1 rounded-lg border border-emerald-500/20 bg-[#0a0a0a]/40 px-3 py-2 backdrop-blur-md transition-all hover:bg-white/[0.03] hover:border-emerald-500/40"
+              >
+                <div className="flex items-center gap-1.5">
+                  <div className="flex h-5 w-5 items-center justify-center text-emerald-400 flex-shrink-0">
+                    {s.icon}
+                  </div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">{s.label}</p>
+                </div>
+                <p className={`text-sm font-bold tracking-tight ${s.color}`}>
+                  {s.value}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </motion.nav>
 
-      {/* ── THREE-COLUMN GRID ── */}
-      <div className="relative z-10 flex-1 overflow-hidden grid grid-cols-[300px_1.5fr_320px] gap-4 p-4">
+      {/* ── THREE-COLUMN GRID (SCROLLABLE) ── */}
+      <div className="relative z-10 flex-1 overflow-y-auto grid grid-cols-[280px_1.5fr_340px] gap-4 p-4">
 
         {/* ═════ LEFT COLUMN (280px) ═════ */}
         <div className="flex flex-col gap-4 overflow-y-auto">
           
-          {/* Network Stats */}
-          <motion.div
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.05 }}
-            className="glass-panel rounded-[16px] p-3 shrink-0"
-          >
-            <div className="grid grid-cols-1 gap-2">
-              {statusCards.map((s) => (
-                <div
-                  key={s.label}
-                  className="flex items-center gap-2 rounded-lg border border-emerald-500/10 bg-[#0a0a0a]/60 px-2 py-1.5 backdrop-blur-md transition-all hover:bg-white/[0.03]"
-                >
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 text-zinc-400 flex-shrink-0">
-                    {s.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-500 truncate">{s.label}</p>
-                    <p className={`mt-0.5 flex items-center gap-1 text-sm font-bold tracking-tight truncate ${s.color}`}>
-                      {s.dot && (
-                        <span className={`relative inline-block h-1.5 w-1.5 rounded-full flex-shrink-0 ${latestLog ? 'bg-emerald-400 pulse-dot' : 'bg-red-500'}`} />
-                      )}
-                      <span className="truncate">{s.value}</span>
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
           {/* Silicon Passport */}
           <motion.div
             initial={{ x: -20, opacity: 0 }}
@@ -231,11 +223,11 @@ function DashboardContent() {
             <div className="relative z-10">
               <div className="mb-2 flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <h2 className="flex items-center gap-1.5 text-sm font-bold text-white truncate">
-                    <Fingerprint className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                  <h2 className="flex items-center gap-1.5 text-base font-bold text-white truncate">
+                    <Fingerprint className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                     <span className="truncate">Passport</span>
                   </h2>
-                  <p className="mt-1 text-[8px] font-medium uppercase tracking-widest text-zinc-500 truncate">
+                  <p className="mt-1 text-[9px] font-medium uppercase tracking-widest text-zinc-500 truncate">
                     PUF + ledger
                   </p>
                 </div>
@@ -273,8 +265,8 @@ function DashboardContent() {
           >
             <div className="relative z-10">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <h3 className="text-sm font-bold text-emerald-400">Telemetry</h3>
-                <span className={`rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] ${isAnomaly ? 'border-red-500/40 bg-red-500/15 text-red-400' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'}`}>
+                <h3 className="text-base font-bold text-emerald-400">Telemetry</h3>
+                <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] ${isAnomaly ? 'border-red-500/40 bg-red-500/15 text-red-400' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'}`}>
                   {isAnomaly ? 'Spike' : 'Nominal'}
                 </span>
               </div>
@@ -304,14 +296,38 @@ function DashboardContent() {
           </motion.div>
         </div>
 
-        {/* ═════ CENTER COLUMN (1fr) ═════ */}
-        <div className="flex flex-col overflow-hidden">
+        {/* ═════ CENTER COLUMN (1.5fr) ═════ */}
+        <div className="flex flex-col gap-4 overflow-hidden">
+          
+          {/* Digital Twin - MAIN FOCAL POINT */}
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }} 
+            animate={{ y: 0, opacity: 1 }} 
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="glass-card rounded-[16px] p-3 flex-1 flex flex-col bg-zinc-900/20 relative overflow-hidden group/tile min-h-0"
+          >
+            <div className="mb-2 flex items-center justify-between relative z-10 shrink-0">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-white truncate">Digital Twin</h2>
+                <p className="mt-0.5 text-[10px] font-medium text-zinc-500 uppercase tracking-widest truncate">Physical Layer</p>
+              </div>
+              <AnomalyControl />
+            </div>
+
+            {/* Canvas Container with Power Rail */}
+            <div className="relative flex-1 rounded-xl border border-white/5 bg-black/40 overflow-hidden shadow-2xl min-h-0">
+              <SiliconCanvas />
+              {/* Power Rail Status Bar */}
+              <PowerRail />
+            </div>
+          </motion.div>
+
           {/* Live Telemetry Terminal */}
           <motion.div 
             initial={{ y: 20, opacity: 0 }} 
             animate={{ y: 0, opacity: 1 }} 
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="glass-panel flex h-full w-full flex-col rounded-[16px] overflow-hidden"
+            className="glass-panel flex flex-1 w-full flex-col rounded-[16px] overflow-hidden"
           >
             {/* Terminal Header Bar */}
             <div className="relative flex items-center justify-between border-b border-white/5 bg-[#0a0a0a]/80 px-4 py-2 backdrop-blur-md shrink-0">
@@ -427,8 +443,18 @@ function DashboardContent() {
           </motion.div>
         </div>
 
-        {/* ═════ RIGHT COLUMN (320px) ═════ */}
+        {/* ═════ RIGHT COLUMN (340px) ═════ */}
         <div className="flex flex-col gap-4 overflow-y-auto">
+
+          {/* Consensus Meter */}
+          <motion.div 
+            initial={{ x: 20, opacity: 0 }} 
+            animate={{ x: 0, opacity: 1 }} 
+            transition={{ duration: 0.6, delay: 0.05 }}
+            className="glass-card rounded-[16px] p-3 shrink-0"
+          >
+            <ConsensusMeter consensusStatus={loading ? 'executing' : ''} />
+          </motion.div>
 
           {/* Mission Control */}
           <motion.div 
@@ -438,11 +464,11 @@ function DashboardContent() {
             className="glass-card rounded-[16px] p-3 shrink-0"
           >
             <div className="mb-3 relative z-10">
-              <h2 className="text-base font-bold text-white flex items-center gap-1.5">
-                <Zap className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+              <h2 className="text-lg font-bold text-white flex items-center gap-1.5">
+                <Zap className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                 <span className="truncate">Mission Control</span>
               </h2>
-              <p className="mt-0.5 text-[9px] font-medium text-zinc-500 uppercase tracking-widest truncate">Deploy Objective</p>
+              <p className="mt-0.5 text-[10px] font-medium text-zinc-500 uppercase tracking-widest truncate">Deploy Objective</p>
             </div>
 
             <div className="space-y-2.5 relative z-10">
@@ -494,26 +520,6 @@ function DashboardContent() {
             </div>
           </motion.div>
 
-          {/* Digital Twin */}
-          <motion.div 
-            initial={{ x: 20, opacity: 0 }} 
-            animate={{ x: 0, opacity: 1 }} 
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="glass-card rounded-[16px] p-3 flex-1 flex flex-col bg-zinc-900/20 relative overflow-hidden group/tile min-h-0"
-          >
-            <div className="mb-2 flex items-center justify-between relative z-10 shrink-0">
-              <div className="flex-1 min-w-0">
-                <h2 className="text-base font-bold text-white truncate">Digital Twin</h2>
-                <p className="mt-0.5 text-[9px] font-medium text-zinc-500 uppercase tracking-widest truncate">Physical Layer</p>
-              </div>
-              <AnomalyControl />
-            </div>
-
-            <div className="relative flex-1 rounded-xl border border-white/5 bg-black/40 overflow-hidden shadow-2xl min-h-0" style={{ transform: 'scale(0.9)', transformOrigin: 'top center' }}>
-              <SiliconCanvas />
-            </div>
-          </motion.div>
-
           {/* Threat Matrix */}
           <motion.div 
             initial={{ x: 20, opacity: 0 }} 
@@ -523,15 +529,26 @@ function DashboardContent() {
           >
             <div className="absolute inset-0 z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05] pointer-events-none" />
             <div className="mb-2 flex items-center justify-between relative z-10 shrink-0">
-              <h2 className="text-base font-bold text-emerald-500">Threat Matrix</h2>
+              <h2 className="text-lg font-bold text-emerald-500">Threat Matrix</h2>
             </div>
-            <div className="w-full relative z-10 flex-1 min-h-0 -ml-2" style={{ transform: 'scale(0.9)', transformOrigin: 'top center' }}>
-              <ResponsiveContainer width="100%" height="100%" minHeight={120}>
-                <RadarChart data={threatMetrics} outerRadius="70%">
-                  <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#71717a', fontSize: 9, fontWeight: 700 }} />
+            <div className="w-full relative z-10 flex-1 min-h-0" style={{ transform: 'scale(0.95)', transformOrigin: 'top center' }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+                <RadarChart data={threatMetrics} outerRadius="65%">
+                  <PolarGrid stroke="rgba(16,185,129,0.15)" strokeDasharray="4 4" />
+                  <PolarAngleAxis 
+                    dataKey="subject" 
+                    tick={{ fill: '#a1a1aa', fontSize: 11, fontWeight: 600 }}
+                    angle={90}
+                  />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                  <Radar name="Threat Level" dataKey="A" stroke="rgba(16,185,129,0.5)" fill="rgba(16,185,129,0.2)" fillOpacity={0.6} />
+                  <Radar 
+                    name="Threat Level" 
+                    dataKey="A" 
+                    stroke="rgba(16,185,129,0.7)" 
+                    fill="rgba(16,185,129,0.25)" 
+                    fillOpacity={0.8}
+                    isAnimationActive={true}
+                  />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -594,6 +611,125 @@ function AnomalyControl() {
         {isAnomaly ? 'Spike On' : 'Spike Off'}
       </span>
     </button>
+  )
+}
+
+function PowerRail() {
+  const { voltage, amperage, isAnomaly } = useHardware()
+
+  // Calculate power rail values for cyberpunk neon visualization
+  const powerLevel = Math.min(100, (amperage / 1.0) * 100)
+  const voltageLevel = Math.min(100, (voltage / 5.5) * 100)
+  
+  return (
+    <div className="absolute right-4 top-4 pointer-events-none z-20 flex flex-col gap-1">
+      {/* Power Rail - Vertical Neon Bar */}
+      <div className="flex flex-col gap-2">
+        <div className="text-[8px] font-mono font-bold text-cyan-400/70 uppercase tracking-wider">PWR RAIL</div>
+        
+        {/* Voltage Fluctuation */}
+        <div className="relative w-1.5 h-20 bg-black/40 border border-cyan-500/30 rounded-full overflow-hidden">
+          <div
+            className={`absolute bottom-0 left-0 right-0 w-full transition-all ${
+              isAnomaly
+                ? 'bg-gradient-to-t from-red-600 via-yellow-500 to-red-400 shadow-[0_0_10px_rgba(239,68,68,0.6)] animate-pulse'
+                : 'bg-gradient-to-t from-cyan-500 to-emerald-400 shadow-[0_0_8px_rgba(34,197,94,0.4)]'
+            }`}
+            style={{ height: `${voltageLevel}%` }}
+          />
+        </div>
+        
+        {/* Current Fluctuation */}
+        <div className="relative w-1.5 h-20 bg-black/40 border border-emerald-500/30 rounded-full overflow-hidden">
+          <div
+            className={`absolute bottom-0 left-0 right-0 w-full transition-all ${
+              isAnomaly
+                ? 'bg-gradient-to-t from-orange-600 via-red-500 to-orange-400 shadow-[0_0_10px_rgba(255,125,0,0.6)]'
+                : 'bg-gradient-to-t from-emerald-500 to-cyan-400 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+            }`}
+            style={{ height: `${powerLevel}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Digital Readout */}
+      <div className="mt-2 text-[7px] font-mono text-zinc-400 space-y-0.5">
+        <div className={`${isAnomaly ? 'text-red-400' : 'text-cyan-400'}`}>
+          V: {voltage.toFixed(2)}
+        </div>
+        <div className={`${isAnomaly ? 'text-orange-400' : 'text-emerald-400'}`}>
+          A: {amperage.toFixed(2)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ConsensusMeter({ consensusStatus }: { consensusStatus?: string }) {
+  const [agentVotes, setAgentVotes] = useState({ alpha: 0, beta: 0, gamma: 0 })
+
+  useEffect(() => {
+    // Simulate agent voting during execution
+    if (consensusStatus === 'executing') {
+      const timer1 = setTimeout(() => setAgentVotes(p => ({ ...p, alpha: 1 })), 200)
+      const timer2 = setTimeout(() => setAgentVotes(p => ({ ...p, beta: 1 })), 400)
+      const timer3 = setTimeout(() => setAgentVotes(p => ({ ...p, gamma: 1 })), 600)
+      return () => {
+        clearTimeout(timer1)
+        clearTimeout(timer2)
+        clearTimeout(timer3)
+      }
+    }
+  }, [consensusStatus])
+
+  const totalVotes = agentVotes.alpha + agentVotes.beta + agentVotes.gamma
+  const consensusPercent = (totalVotes / 3) * 100
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Shield className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-400">Consensus Meter</p>
+      </div>
+
+      <div className="space-y-1.5">
+        {/* Consensus Progress Bar */}
+        <div className="flex flex-col gap-1">
+          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all"
+              style={{ width: `${consensusPercent}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[8px] font-mono text-zinc-500">
+            <span>Consensus</span>
+            <span>{Math.round(consensusPercent)}%</span>
+          </div>
+        </div>
+
+        {/* Agent Vote Indicators */}
+        <div className="flex gap-1.5 pt-1">
+          <div className="flex-1 flex flex-col items-center gap-1">
+            <div className={`h-2 w-full rounded-sm transition-all ${
+              agentVotes.alpha ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]' : 'bg-white/10'
+            }`} />
+            <span className="text-[7px] font-mono text-zinc-500">Alpha</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center gap-1">
+            <div className={`h-2 w-full rounded-sm transition-all ${
+              agentVotes.beta ? 'bg-cyan-500 shadow-[0_0_6px_rgba(34,211,238,0.4)]' : 'bg-white/10'
+            }`} />
+            <span className="text-[7px] font-mono text-zinc-500">Beta</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center gap-1">
+            <div className={`h-2 w-full rounded-sm transition-all ${
+              agentVotes.gamma ? 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)]' : 'bg-white/10'
+            }`} />
+            <span className="text-[7px] font-mono text-zinc-500">Gamma</span>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
