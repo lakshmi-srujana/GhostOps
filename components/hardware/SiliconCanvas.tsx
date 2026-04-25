@@ -55,7 +55,7 @@ const Microchip = () => {
   const glowColor = isAnomaly ? '#ff0000' : '#10b981'
 
   return (
-    <group>
+    <group position={[0, -0.4, 0]}>
       {/* Main Chip Body */}
       <mesh ref={meshRef} castShadow>
         <boxGeometry args={[2, 0.2, 2]} />
@@ -108,16 +108,16 @@ const Microchip = () => {
 
 const SiliconCanvas = React.memo(() => {
   return (
-    <div className="h-full w-full min-h-[300px] relative">
+    <div className="h-full w-full min-h-[250px] relative">
       <Canvas shadows dpr={[1, 2]}>
-        <PerspectiveCamera makeDefault position={[0, 4, 6]} fov={35} />
-        <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.5} />
+        <PerspectiveCamera makeDefault position={[0, 1.6,2.75]} fov={50} />
+        <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.5} target={[0, 0, 0]} />
         
         <ambientLight intensity={0.2} />
         <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
         <pointLight position={[-10, -10, -10]} intensity={0.5} color="#10b981" />
         
-        <Float speed={2} rotationIntensity={1} floatIntensity={1}>
+        <Float speed={2} rotationIntensity={0.4} floatIntensity={0.2}>
           <Microchip />
         </Float>
 
