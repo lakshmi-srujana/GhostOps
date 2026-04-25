@@ -211,14 +211,14 @@ function DashboardContent() {
       <div className="relative z-10 flex-1 overflow-y-auto grid grid-cols-[280px_1.5fr_340px] gap-4 p-4">
 
         {/* ═════ LEFT COLUMN (280px) ═════ */}
-        <div className="flex flex-col gap-4 overflow-y-auto">
+        <div className="flex flex-col gap-4 overflow-y-auto self-start">
           
           {/* Silicon Passport */}
           <motion.div
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.08 }}
-            className="glass-panel rounded-[16px] p-3 flex-1 overflow-y-auto"
+            className="glass-panel rounded-[16px] p-3 h-fit"
           >
             <div className="relative z-10">
               <div className="mb-2 flex items-start justify-between gap-2">
@@ -246,7 +246,7 @@ function DashboardContent() {
                 </span>
               </div>
 
-              <div className="space-y-1.5 text-[9px]">
+              <div className="space-y-1 text-[9px]">
                 <PassportRow label="Hardware ID" value={hardwareId} />
                 <PassportRow label="Fingerprint" value={fingerprint} truncateAsHash />
                 <PassportRow label="DID" value={blockchainId} truncateAsHash />
@@ -297,7 +297,7 @@ function DashboardContent() {
         </div>
 
         {/* ═════ CENTER COLUMN (1.5fr) ═════ */}
-        <div className="flex flex-col gap-4 overflow-hidden">
+        <div className="flex flex-col gap-4 overflow-hidden self-start bg-gradient-to-b from-transparent to-green-900/5">
           
           {/* Digital Twin - MAIN FOCAL POINT */}
           <motion.div 
@@ -327,7 +327,7 @@ function DashboardContent() {
             initial={{ y: 20, opacity: 0 }} 
             animate={{ y: 0, opacity: 1 }} 
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="glass-panel flex flex-1 w-full flex-col rounded-[16px] overflow-hidden"
+            className="glass-panel flex w-full flex-col rounded-[16px] overflow-hidden h-[550px]"
           >
             {/* Terminal Header Bar */}
             <div className="relative flex items-center justify-between border-b border-white/5 bg-[#0a0a0a]/80 px-4 py-2 backdrop-blur-md shrink-0">
@@ -360,7 +360,7 @@ function DashboardContent() {
             </div>
 
             {/* Log Canvas */}
-            <div ref={feedRef} className="tactical-scroll relative flex-1 overflow-y-auto bg-[#050505]/90 p-4">
+            <div ref={feedRef} className="tactical-scroll relative flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700/40 bg-[#050505]/90 p-4">
               <div className="scanline-overlay absolute inset-0 z-10 opacity-[0.15]" />
               
               <div className="relative z-20 space-y-3">
@@ -444,7 +444,7 @@ function DashboardContent() {
         </div>
 
         {/* ═════ RIGHT COLUMN (340px) ═════ */}
-        <div className="flex flex-col gap-4 overflow-y-auto">
+        <div className="flex flex-col gap-4 overflow-y-auto self-start">
 
           {/* Consensus Meter */}
           <motion.div 
@@ -576,9 +576,9 @@ function PassportRow({
     : 'Initializing...'
 
   return (
-    <div className="rounded-lg border border-white/5 bg-[#111111]/75 px-2 py-1.5">
-      <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-zinc-500">{label}</p>
-      <p className="mt-1 break-all font-mono text-[9px] text-zinc-200 text-left">{displayValue}</p>
+    <div className="rounded-lg border border-white/5 bg-[#111111]/75 px-2 py-1.5 mb-1">
+      <p className="text-[10px] uppercase tracking-wider text-zinc-500">{label}</p>
+      <p className="mt-1 break-all font-mono text-xs text-zinc-200 text-left">{displayValue}</p>
     </div>
   )
 }
@@ -622,7 +622,7 @@ function PowerRail() {
   const voltageLevel = Math.min(100, (voltage / 5.5) * 100)
   
   return (
-    <div className="absolute right-4 top-4 pointer-events-none z-20 flex flex-col gap-1">
+    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-20 flex flex-col gap-1">
       {/* Power Rail - Vertical Neon Bar */}
       <div className="flex flex-col gap-2">
         <div className="text-[8px] font-mono font-bold text-cyan-400/70 uppercase tracking-wider">PWR RAIL</div>
