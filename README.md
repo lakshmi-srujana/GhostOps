@@ -4,10 +4,10 @@
 
 ### Next-Generation Security Orchestration for RISC-V Hardware Integrity
 
-![Status]("Screenshot (55).png")
-![Stack]("Screenshot (56).png")
-![Target]("Screenshot 1.png")
-![License]("Screenshot 2.png")
+![Status](Screenshot (55).png)
+![Stack](Screenshot (56).png)
+![Target](Screenshot 1.png)
+![License](Screenshot 2.png)
 
 > *"If you can't stop the ghost in the machine — give it a haunted house to play in."*
 
