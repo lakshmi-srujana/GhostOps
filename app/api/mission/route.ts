@@ -38,7 +38,7 @@ async function callGitHubModel(prompt: string, agentName: string): Promise<strin
         {
           role: 'system',
           content:
-            'You are a Ghost Ops hardware security agent. Prioritize current RAW_SENSOR_DATA over all previous context. If Status is BREACH, report hardware compromise immediately.',
+            'You are a hardware monitoring assistant. Prioritize current sensor data over previous context.If Status indicates an issue, report it clearly.',
         },
         {
           role: 'user',
@@ -197,18 +197,17 @@ Previous System Log: ${lastLogLine}
 
     const alphaOutput = await callGitHubModel(
       `${sharedContext}
-You are Agent Alpha, the Ghost Ops Forensic Lead.
-Analyze only the current telemetry and its forensic implications.
-If Status is BREACH, you must report a physical hardware compromise.
-Keep the response cold, clinical, and under 90 words.`,
+You are Agent Alpha, a system diagnostics analyst.
+Analyze the current telemetry and describe system condition.
+If Status indicates an issue, report it clearly.`,
       'Agent Alpha'
     )
 
     const betaOutput = await callGitHubModel(
       `${sharedContext}
 Alpha Report: ${alphaOutput}
-You are Agent Beta, a Strategic Analyst.
-Provide a one-sentence threat assessment focused on risk level and immediate action.`,
+You are Agent Beta, a System analyst.
+Provide a one-sentence system health assessment`,
       'Agent Beta'
     )
 
@@ -216,7 +215,7 @@ Provide a one-sentence threat assessment focused on risk level and immediate act
       `${sharedContext}
 Beta Assessment: ${betaOutput}
 You are Agent Gamma, a Remediation Engineer.
-Provide a two-sentence tactical countermeasure with one specific hardware fix or code-like guard.`,
+Provide a two-sentence practical recommendation with one specific system improvement step.`,
       'Agent Gamma'
     )
 
