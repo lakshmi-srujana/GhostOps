@@ -106,7 +106,7 @@ const Microchip = () => {
   )
 }
 
-const SiliconCanvas = React.memo(() => {
+const SiliconCanvas = React.memo(({ isDeceptionActive }: { isDeceptionActive: boolean }) => {
   return (
     <div className="h-full w-full min-h-[250px] relative">
       <Canvas shadows dpr={[1, 2]}>
@@ -120,6 +120,21 @@ const SiliconCanvas = React.memo(() => {
         <Float speed={2} rotationIntensity={0.4} floatIntensity={0.2}>
           <Microchip />
         </Float>
+
+        {/* Deception Active: Purple Wireframe Overlay */}
+        {isDeceptionActive && (
+          <group position={[0, -0.4, 0]}>
+            <mesh>
+              <boxGeometry args={[2.3, 0.5, 2.3]} />
+              <meshBasicMaterial
+                color="#A855F7"
+                wireframe
+                transparent
+                opacity={0.3}
+              />
+            </mesh>
+          </group>
+        )}
 
         <Environment preset="night" />
       </Canvas>

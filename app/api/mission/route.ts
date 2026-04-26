@@ -9,6 +9,7 @@ type MissionRequest = {
   voltage?: number
   amperage?: number
   isAnomaly?: boolean
+  isDeceptionActive?: boolean
   hardwareStatus?: {
     voltage?: number
     amperage?: number
@@ -165,7 +166,8 @@ export async function POST(req: Request) {
     const voltage = body.voltage ?? body.hardwareStatus?.voltage ?? 3.3
     const amperage = body.amperage ?? body.hardwareStatus?.amperage ?? 0.399
     const isAnomaly = body.isAnomaly ?? body.hardwareStatus?.isAnomaly ?? false
-    const status = isAnomaly ? 'BREACH' : 'NOMINAL'
+    const isDeceptionActive = body.isDeceptionActive ?? false
+    const status = isAnomaly || isDeceptionActive ? 'AUDIT_EVENT' : 'NOMINAL'
     const telemetryString = `[RAW_SENSOR_DATA] V: ${voltage}, A: ${amperage}, Status: ${status}.`
 
     const { data: missionData, error: missionError } = await supabaseAdmin
@@ -180,6 +182,16 @@ export async function POST(req: Request) {
     missionId = missionData?.[0]?.id
     if (!missionId) {
       return NextResponse.json({ error: 'Mission creation failed to return data.' }, { status: 500 })
+    }
+
+    // ═══ DECEPTION AUDIT LOG INJECTION ═══
+    if (isDeceptionActive) {
+      const deceptionAuditLog = `[DECEPTION_AUDIT]: Interaction with restricted sector 0xDEADBEEF verified. Initiating automated sector-isolation protocol.`
+      await supabaseAdmin.from('mission_logs').insert([{
+        mission_id: missionId,
+        agent_name: 'AGENT_HONEY',
+        output_data: deceptionAuditLog,
+      }])
     }
 
     const { data: lastLogData } = await supabaseAdmin

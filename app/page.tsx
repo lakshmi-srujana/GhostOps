@@ -39,6 +39,7 @@ function DashboardContent() {
   const [logs, setLogs] = useState<any[]>([])
   const [task, setTask] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isDeceptionActive, setIsDeceptionActive] = useState(false)
   const feedRef = useRef<HTMLDivElement>(null)
 
   const { isAnomaly, voltage, amperage } = useHardware()
@@ -130,7 +131,8 @@ function DashboardContent() {
           task,
           voltage: voltage,     
           amperage: amperage,   
-          isAnomaly: isAnomaly  
+          isAnomaly: isAnomaly,
+          isDeceptionActive: isDeceptionActive
         })
       })
 
@@ -316,9 +318,9 @@ function DashboardContent() {
 
             {/* Canvas Container with Power Rail */}
             <div className="relative flex-1 rounded-xl border border-white/5 bg-black/40 overflow-hidden shadow-2xl min-h-0">
-              <SiliconCanvas />
+              <SiliconCanvas isDeceptionActive={isDeceptionActive} />
               {/* Power Rail Status Bar */}
-              <PowerRail />
+              <PowerRail isDeceptionActive={isDeceptionActive} />
             </div>
           </motion.div>
 
@@ -378,31 +380,36 @@ function DashboardContent() {
                       {/* Timeline Track */}
                       <div className="relative flex flex-col items-center flex-shrink-0">
                         <div className={`h-2.5 w-2.5 rounded-full z-10 my-1.5 ${
-                          idx === 0 && log.agent_name !== 'Agent_Gamma' ? 'bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
+                          idx === 0 && log.agent_name !== 'Agent_Gamma' && log.agent_name !== 'AGENT_HONEY' ? 'bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
                           : log.agent_name === 'Agent_Gamma' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+                          : log.agent_name === 'AGENT_HONEY' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]'
                           : 'bg-emerald-500/30'
                         }`} />
                         <div className={`w-[1.5px] h-full absolute top-3 group-last:hidden ${
-                          log.agent_name === 'Agent_Gamma' ? 'bg-amber-500/20' : 'bg-emerald-500/10'
+                          log.agent_name === 'Agent_Gamma' ? 'bg-amber-500/20' : log.agent_name === 'AGENT_HONEY' ? 'bg-purple-500/20' : 'bg-emerald-500/10'
                         }`} />
                       </div>
 
                       {/* Content Card */}
                       <div className={`flex-1 rounded-[12px] border px-3 py-2.5 backdrop-blur-sm transition-all hover:bg-[#151515]/80 ${
                         log.agent_name === 'Agent_Gamma' 
-                        ? 'bg-[#201004]/50 border-amber-500/30 text-amber-500' 
+                        ? 'bg-[#201004]/50 border-amber-500/30 text-amber-500'
+                        : log.agent_name === 'AGENT_HONEY'
+                        ? 'bg-[#1a0033]/50 border-purple-500/30 text-purple-300'
                         : 'bg-[#111111]/60 border-white/[0.04] hover:border-white/10'
                       }`}>
                         <div className={`mb-2 flex flex-wrap items-center justify-between gap-2 border-b pb-2 ${
-                          log.agent_name === 'Agent_Gamma' ? 'border-amber-500/10' : 'border-white/5'
+                          log.agent_name === 'Agent_Gamma' ? 'border-amber-500/10' : log.agent_name === 'AGENT_HONEY' ? 'border-purple-500/10' : 'border-white/5'
                         }`}>
                           <div className="flex items-center gap-2 text-[12px] font-bold">
-                            <span className={`text-[11px] font-mono ${log.agent_name === 'Agent_Gamma' ? 'text-amber-500/80' : 'text-zinc-600'}`}>
+                            <span className={`text-[11px] font-mono ${log.agent_name === 'Agent_Gamma' ? 'text-amber-500/80' : log.agent_name === 'AGENT_HONEY' ? 'text-purple-400/80' : 'text-zinc-600'}`}>
                               #{displayId}
                             </span>
                             <span className={`text-[11px] border px-1.5 py-0.5 rounded uppercase font-bold ${
                               log.agent_name === 'Agent_Gamma' 
-                              ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' 
+                              ? 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+                              : log.agent_name === 'AGENT_HONEY'
+                              ? 'text-purple-400 bg-purple-500/10 border-purple-500/30'
                               : 'text-emerald-500 bg-emerald-500/5 border-emerald-500/20'
                             }`}>
                               {log.agent_name}
@@ -453,7 +460,7 @@ function DashboardContent() {
             transition={{ duration: 0.6, delay: 0.05 }}
             className="glass-card rounded-[16px] p-3 shrink-0"
           >
-            <ConsensusMeter consensusStatus={loading ? 'executing' : ''} />
+            <ConsensusMeter consensusStatus={loading ? 'executing' : ''} isDeceptionActive={isDeceptionActive} />
           </motion.div>
 
           {/* Mission Control */}
@@ -486,6 +493,30 @@ function DashboardContent() {
                     className="w-full bg-transparent px-2 py-2.5 text-sm text-white placeholder:text-zinc-600 outline-none"
                   />
                 </div>
+              </div>
+
+              {/* Deception Toggle Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsDeceptionActive(!isDeceptionActive)}
+                  className={`flex-1 px-3 py-2 rounded-lg border transition-all active:scale-95 font-bold text-[10px] uppercase tracking-[0.12em] ${
+                    isDeceptionActive
+                      ? 'border-purple-500/50 bg-purple-500/15 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.4)]'
+                      : 'border-white/10 bg-white/5 text-zinc-400 hover:border-purple-500/30 hover:text-purple-400'
+                  }`}
+                >
+                  Ghost-Reg
+                </button>
+                <button
+                  onClick={() => setIsDeceptionActive(!isDeceptionActive)}
+                  className={`flex-1 px-3 py-2 rounded-lg border transition-all active:scale-95 font-bold text-[10px] uppercase tracking-[0.12em] ${
+                    isDeceptionActive
+                      ? 'border-purple-500/50 bg-purple-500/15 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.4)]'
+                      : 'border-white/10 bg-white/5 text-zinc-400 hover:border-purple-500/30 hover:text-purple-400'
+                  }`}
+                >
+                  Deceptive-Rail
+                </button>
               </div>
 
               <button
@@ -614,7 +645,7 @@ function AnomalyControl() {
   )
 }
 
-function PowerRail() {
+function PowerRail({ isDeceptionActive }: { isDeceptionActive: boolean }) {
   const { voltage, amperage, isAnomaly } = useHardware()
 
   // Calculate power rail values for cyberpunk neon visualization
@@ -631,7 +662,9 @@ function PowerRail() {
         <div className="relative w-1.5 h-20 bg-black/40 border border-cyan-500/30 rounded-full overflow-hidden">
           <div
             className={`absolute bottom-0 left-0 right-0 w-full transition-all ${
-              isAnomaly
+              isDeceptionActive
+                ? 'bg-gradient-to-t from-purple-600 via-purple-500 to-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.6)] animate-pulse'
+                : isAnomaly
                 ? 'bg-gradient-to-t from-red-600 via-yellow-500 to-red-400 shadow-[0_0_10px_rgba(239,68,68,0.6)] animate-pulse'
                 : 'bg-gradient-to-t from-cyan-500 to-emerald-400 shadow-[0_0_8px_rgba(34,197,94,0.4)]'
             }`}
@@ -643,7 +676,9 @@ function PowerRail() {
         <div className="relative w-1.5 h-20 bg-black/40 border border-emerald-500/30 rounded-full overflow-hidden">
           <div
             className={`absolute bottom-0 left-0 right-0 w-full transition-all ${
-              isAnomaly
+              isDeceptionActive
+                ? 'bg-gradient-to-t from-purple-600 via-purple-500 to-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.6)] animate-pulse'
+                : isAnomaly
                 ? 'bg-gradient-to-t from-orange-600 via-red-500 to-orange-400 shadow-[0_0_10px_rgba(255,125,0,0.6)]'
                 : 'bg-gradient-to-t from-emerald-500 to-cyan-400 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
             }`}
@@ -654,10 +689,10 @@ function PowerRail() {
 
       {/* Digital Readout */}
       <div className="mt-2 text-[7px] font-mono text-zinc-400 space-y-0.5">
-        <div className={`${isAnomaly ? 'text-red-400' : 'text-cyan-400'}`}>
+        <div className={`${isDeceptionActive ? 'text-purple-400' : isAnomaly ? 'text-red-400' : 'text-cyan-400'}`}>
           V: {voltage.toFixed(2)}
         </div>
-        <div className={`${isAnomaly ? 'text-orange-400' : 'text-emerald-400'}`}>
+        <div className={`${isDeceptionActive ? 'text-purple-400' : isAnomaly ? 'text-orange-400' : 'text-emerald-400'}`}>
           A: {amperage.toFixed(2)}
         </div>
       </div>
@@ -665,10 +700,16 @@ function PowerRail() {
   )
 }
 
-function ConsensusMeter({ consensusStatus }: { consensusStatus?: string }) {
+function ConsensusMeter({ consensusStatus, isDeceptionActive }: { consensusStatus?: string, isDeceptionActive?: boolean }) {
   const [agentVotes, setAgentVotes] = useState({ alpha: 0, beta: 0, gamma: 0 })
 
   useEffect(() => {
+    // Deception mode: force 100% consensus immediately
+    if (isDeceptionActive) {
+      setAgentVotes({ alpha: 1, beta: 1, gamma: 1 })
+      return
+    }
+
     // Simulate agent voting during execution
     if (consensusStatus === 'executing') {
       const timer1 = setTimeout(() => setAgentVotes(p => ({ ...p, alpha: 1 })), 200)
@@ -680,7 +721,7 @@ function ConsensusMeter({ consensusStatus }: { consensusStatus?: string }) {
         clearTimeout(timer3)
       }
     }
-  }, [consensusStatus])
+  }, [consensusStatus, isDeceptionActive])
 
   const totalVotes = agentVotes.alpha + agentVotes.beta + agentVotes.gamma
   const consensusPercent = (totalVotes / 3) * 100
@@ -697,7 +738,11 @@ function ConsensusMeter({ consensusStatus }: { consensusStatus?: string }) {
         <div className="flex flex-col gap-1">
           <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all"
+              className={`h-full transition-all ${
+                isDeceptionActive
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
+                  : 'bg-gradient-to-r from-emerald-500 to-cyan-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+              }`}
               style={{ width: `${consensusPercent}%` }}
             />
           </div>
@@ -711,19 +756,25 @@ function ConsensusMeter({ consensusStatus }: { consensusStatus?: string }) {
         <div className="flex gap-1.5 pt-1">
           <div className="flex-1 flex flex-col items-center gap-1">
             <div className={`h-2 w-full rounded-sm transition-all ${
-              agentVotes.alpha ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]' : 'bg-white/10'
+              isDeceptionActive
+                ? 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.4)]'
+                : agentVotes.alpha ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]' : 'bg-white/10'
             }`} />
             <span className="text-[7px] font-mono text-zinc-500">Alpha</span>
           </div>
           <div className="flex-1 flex flex-col items-center gap-1">
             <div className={`h-2 w-full rounded-sm transition-all ${
-              agentVotes.beta ? 'bg-cyan-500 shadow-[0_0_6px_rgba(34,211,238,0.4)]' : 'bg-white/10'
+              isDeceptionActive
+                ? 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.4)]'
+                : agentVotes.beta ? 'bg-cyan-500 shadow-[0_0_6px_rgba(34,211,238,0.4)]' : 'bg-white/10'
             }`} />
             <span className="text-[7px] font-mono text-zinc-500">Beta</span>
           </div>
           <div className="flex-1 flex flex-col items-center gap-1">
             <div className={`h-2 w-full rounded-sm transition-all ${
-              agentVotes.gamma ? 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)]' : 'bg-white/10'
+              isDeceptionActive
+                ? 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.4)]'
+                : agentVotes.gamma ? 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)]' : 'bg-white/10'
             }`} />
             <span className="text-[7px] font-mono text-zinc-500">Gamma</span>
           </div>
