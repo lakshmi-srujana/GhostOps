@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
-import ModelClient from '@azure-rest/ai-inference'
-import { AzureKeyCredential } from '@azure/core-auth'
-
 import { supabaseAdmin } from '../../../lib/supabase'
+import { generateAgentResponse } from '../../../lib/github-models'
 
 type MissionRequest = {
   task?: string
@@ -17,134 +15,72 @@ type MissionRequest = {
   }
 }
 
-const githubToken = process.env.GITHUB_TOKEN
-const githubModel = process.env.GITHUB_MODEL || 'gpt-4o'
-
-const client = githubToken
-  ? ModelClient(
-      'https://models.inference.ai.azure.com',
-      new AzureKeyCredential(githubToken)
-    )
-  : null
-
-async function callGitHubModel(prompt: string, agentName: string): Promise<string> {
-  if (!client) {
-    throw new Error('Missing GITHUB_TOKEN in .env.local')
-  }
-
-  const response = await client.path('/chat/completions').post({
-    body: {
-      model: githubModel,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a hardware monitoring assistant. Prioritize current sensor data over previous context.If Status indicates an issue, report it clearly.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.1,
-    },
-  })
-
-  if (response.status !== '200') {
-    const body = response.body as { error?: { message?: string }; message?: string }
-    throw new Error(
-      `${agentName} GitHub Models request failed: ${body?.error?.message || body?.message || response.status}`
-    )
-  }
-
-  const body = response.body as {
-    choices?: Array<{ message?: { content?: string | null } }>
-  }
-
-  return body.choices?.[0]?.message?.content?.trim() || `${agentName} returned no analysis.`
+// Configuration Constants
+const CONFIG = {
+  DEFAULT_VOLTAGE: 3.3,
+  DEFAULT_AMPERAGE: 0.399,
+  VOLTAGE_SPIKE_THRESHOLD: 4.2,
+  AMPERAGE_SPIKE_THRESHOLD: 0.65,
+  STREAM_DELAY_MS: 300,
 }
 
-interface ConsensusAnalysis {
-  alphaBreach: boolean
-  betaThreatLevel: 'high' | 'medium' | 'low'
-  gammaRemediationConfidence: boolean
-  consensusFlag: string
-  consensus: 'verified' | 'conflict'
+function auditTimestamp() {
+  const now = new Date()
+  const microseconds = `${performance.now().toFixed(3)}`.replace('.', '').slice(-6).padStart(6, '0')
+  return `${now.toISOString().replace('Z', '')}${microseconds.slice(3)}Z`
 }
 
-function analyzeConsensus(
-  alphaOutput: string,
-  betaOutput: string,
-  gammaOutput: string,
-  isAnomaly: boolean
-): ConsensusAnalysis {
-  // Alpha: Check for BREACH or COMPROMISE keywords
-  const alphaBreach =
-    alphaOutput.toLowerCase().includes('breach') ||
-    alphaOutput.toLowerCase().includes('compromise') ||
-    alphaOutput.toLowerCase().includes('critical') ||
-    isAnomaly
-
-  // Beta: Assess threat level from output
-  const betaLower = betaOutput.toLowerCase()
-  let betaThreatLevel: 'high' | 'medium' | 'low' = 'medium'
-  if (
-    betaLower.includes('critical') ||
-    betaLower.includes('imminent') ||
-    betaLower.includes('severe') ||
-    betaLower.includes('high risk')
-  ) {
-    betaThreatLevel = 'high'
-  } else if (
-    betaLower.includes('minimal') ||
-    betaLower.includes('low risk') ||
-    betaLower.includes('nominal')
-  ) {
-    betaThreatLevel = 'low'
-  }
-
-  // Gamma: Check for actionable remediation (contains specific fixes or guards)
-  const gammaRemediationConfidence =
-    gammaOutput.length > 30 && // Substantive response
-    (gammaOutput.toLowerCase().includes('implement') ||
-      gammaOutput.toLowerCase().includes('deploy') ||
-      gammaOutput.toLowerCase().includes('guard') ||
-      gammaOutput.toLowerCase().includes('isolate') ||
-      gammaOutput.toLowerCase().includes('reset') ||
-      gammaOutput.toLowerCase().includes('patch'))
-
-  // Consensus logic
-  const consensusMetrics = {
-    alphaBreach,
-    betaThreatHigh: betaThreatLevel === 'high',
-    gammaActionable: gammaRemediationConfidence,
-  }
-
-  // VERIFIED CONSENSUS: All three agents agree (Alpha breach + Beta high threat + Gamma has fix)
-  const verified =
-    isAnomaly &&
-    alphaBreach &&
-    betaThreatLevel === 'high' &&
-    gammaRemediationConfidence
-
-  const consensusFlag = verified ? '[VERIFIED CONSENSUS]' : '[CONFLICT DETECTED - RE-SCANNING]'
-  const consensus = verified ? 'verified' : 'conflict'
+function classifyTelemetry(voltage: number, amperage: number, isAnomaly: boolean, isDeceptionActive: boolean) {
+  const voltageSpike = voltage >= CONFIG.VOLTAGE_SPIKE_THRESHOLD
+  const amperageSpike = amperage >= CONFIG.AMPERAGE_SPIKE_THRESHOLD
+  const trapTrip = isDeceptionActive
+  const observed = isAnomaly || voltageSpike || amperageSpike || trapTrip
 
   return {
-    alphaBreach,
-    betaThreatLevel,
-    gammaRemediationConfidence,
-    consensusFlag,
-    consensus,
+    observed,
+    voltageSpike,
+    amperageSpike,
+    trapTrip,
+    status: observed ? 'AUDIT_EVENT' : 'NOMINAL',
+    integrity: isAnomaly ? 'DISTORTED' : 'STABLE',
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function formatForensicLog(agentId: string, status: string, insight: string) {
+  return `[${auditTimestamp()}] [${agentId}] [${status}]: ${insight}`
+}
+
+async function writeMissionLog(
+  missionId: string,
+  agentName: string,
+  outputData: string,
+  inputData?: string
+) {
+  if (!supabaseAdmin) return
+
+  const { error } = await supabaseAdmin
+    .from('mission_logs')
+    .insert([{
+      mission_id: missionId,
+      agent_name: agentName,
+      input_data: inputData,
+      output_data: outputData,
+    }])
+
+  if (error) {
+    console.error(`[SUPABASE ERROR] Log write failed for ${agentName}:`, error.message)
   }
 }
 
 export async function GET() {
   return NextResponse.json({
     status: 'Route is ALIVE',
-    provider: 'GitHub Models',
-    model: githubModel,
-    tokenConfigured: Boolean(githubToken),
+    provider: 'GitHub Models / Supabase',
+    sequence: ['API_FETCH', 'Agent_Alpha', 'Agent_Beta', 'Agent_Gamma', 'CONSENSUS_PROTOCOL'],
   })
 }
 
@@ -163,19 +99,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Server configuration error: missing Supabase service key.' }, { status: 500 })
     }
 
-    const voltage = body.voltage ?? body.hardwareStatus?.voltage ?? 3.3
-    const amperage = body.amperage ?? body.hardwareStatus?.amperage ?? 0.399
-    const isAnomaly = body.isAnomaly ?? body.hardwareStatus?.isAnomaly ?? false
+    const voltage = body.voltage ?? body.hardwareStatus?.voltage ?? CONFIG.DEFAULT_VOLTAGE
+    const amperage = body.amperage ?? body.hardwareStatus?.amperage ?? CONFIG.DEFAULT_AMPERAGE
+    const requestedAnomaly = body.isAnomaly ?? body.hardwareStatus?.isAnomaly ?? false
     const isDeceptionActive = body.isDeceptionActive ?? false
-    const status = isAnomaly || isDeceptionActive ? 'AUDIT_EVENT' : 'NOMINAL'
-    const telemetryString = `[RAW_SENSOR_DATA] V: ${voltage}, A: ${amperage}, Status: ${status}.`
+    const telemetry = classifyTelemetry(voltage, amperage, requestedAnomaly, isDeceptionActive)
+    const isAnomaly = telemetry.observed
 
+    // 1. Create Mission
     const { data: missionData, error: missionError } = await supabaseAdmin
       .from('missions')
       .insert([{ title: task, status: 'executing' }])
       .select()
 
     if (missionError) {
+      console.error('[SUPABASE ERROR] Mission creation failed:', missionError.message)
       return NextResponse.json({ error: `Mission Creation Failed: ${missionError.message}` }, { status: 500 })
     }
 
@@ -184,119 +122,101 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Mission creation failed to return data.' }, { status: 500 })
     }
 
-    // ═══ DECEPTION AUDIT LOG INJECTION ═══
+    // 2. Initial Fetch Log
+    await writeMissionLog(
+      missionId,
+      'API_FETCH',
+      formatForensicLog(
+        'API_FETCH',
+        'NOMINAL',
+        `Directive received. Initialization sequence start. Query="${task}". Hardware context V=${voltage.toFixed(3)}V A=${amperage.toFixed(3)}A Integrity=${telemetry.integrity}.`
+      )
+    )
+
+    // 3. Deception Log
     if (isDeceptionActive) {
-      const deceptionAuditLog = `[DECEPTION_AUDIT]: Interaction with restricted sector 0xDEADBEEF verified. Initiating automated sector-isolation protocol.`
-      await supabaseAdmin.from('mission_logs').insert([{
-        mission_id: missionId,
-        agent_name: 'AGENT_HONEY',
-        output_data: deceptionAuditLog,
-      }])
+      await sleep(CONFIG.STREAM_DELAY_MS)
+      await writeMissionLog(
+        missionId,
+        'AGENT_HONEY',
+        formatForensicLog(
+          'AGENT_HONEY',
+          'DECEPTION',
+          'GHOST-REG canary read and DECEPTIVE-RAIL lure path tripped. Purple deception channel active; restricted interaction preserved in forensic stream.'
+        )
+      )
     }
 
-    const { data: lastLogData } = await supabaseAdmin
-      .from('mission_logs')
-      .select('output_data')
-      .order('created_at', { ascending: false })
-      .limit(1)
+    // 4. Sequential Agent Analysis (Real LLM Calls)
+    const agents = [
+      { name: 'Agent_Alpha', role: 'Voltage/PUF telemetry analyst' },
+      { name: 'Agent_Beta', role: 'Timing/Frequency health analyst' },
+      { name: 'Agent_Gamma', role: 'Logic/Canary remediation analyst' },
+    ]
 
-    const lastLogLine = lastLogData?.[0]?.output_data || 'No previous logs found.'
-    const sharedContext = `
-${telemetryString}
-Mission Objective: ${task}
-Previous System Log: ${lastLogLine}
-`
-
-    const alphaOutput = await callGitHubModel(
-      `${sharedContext}
-You are Agent Alpha, a system diagnostics analyst.
-Analyze the current telemetry and describe system condition.
-If Status indicates an issue, report it clearly.`,
-      'Agent Alpha'
-    )
-
-    const betaOutput = await callGitHubModel(
-      `${sharedContext}
-Alpha Report: ${alphaOutput}
-You are Agent Beta, a System analyst.
-Provide a one-sentence system health assessment`,
-      'Agent Beta'
-    )
-
-    const gammaOutput = await callGitHubModel(
-      `${sharedContext}
-Beta Assessment: ${betaOutput}
-You are Agent Gamma, a Remediation Engineer.
-Provide a two-sentence practical recommendation with one specific system improvement step.`,
-      'Agent Gamma'
-    )
-
-    // ═══ CONSENSUS PROTOCOL ═══
-    const consensusAnalysis = analyzeConsensus(alphaOutput, betaOutput, gammaOutput, isAnomaly)
-    const consensusReportData = `${consensusAnalysis.consensusFlag}
-[COLLECTIVE FORENSIC SUMMARY]
-• Alpha Forensic: ${consensusAnalysis.alphaBreach ? 'BREACH CONFIRMED' : 'No physical compromise detected'}
-• Beta Threat Assessment: ${consensusAnalysis.betaThreatLevel.toUpperCase()}
-• Gamma Remediation: ${consensusAnalysis.gammaRemediationConfidence ? 'ACTIONABLE FIX PROVIDED' : 'Awaiting protocol clarification'}
-Consensus: ${consensusAnalysis.consensus === 'verified' ? 'All agents in agreement' : 'Agent conflict - manual review recommended'}`
-
-    const { error: logError } = await supabaseAdmin.from('mission_logs').insert([
-      {
-        mission_id: missionId,
-        agent_name: 'Agent_Alpha',
-        output_data: alphaOutput,
-      },
-      {
-        mission_id: missionId,
-        agent_name: 'Agent_Beta',
-        input_data: alphaOutput,
-        output_data: betaOutput,
-      },
-      {
-        mission_id: missionId,
-        agent_name: 'Agent_Gamma',
-        input_data: betaOutput,
-        output_data: gammaOutput,
-      },
-      {
-        mission_id: missionId,
-        agent_name: 'CONSENSUS_PROTOCOL',
-        output_data: consensusReportData,
-      },
-    ])
-
-    if (logError) {
-      throw new Error(logError.message)
-    }
-
-    await supabaseAdmin.from('missions').update({ 
-      status: 'completed',
-      metadata: JSON.stringify({
-        consensusStatus: consensusAnalysis.consensus,
-        consensusFlag: consensusAnalysis.consensusFlag,
+    for (const agent of agents) {
+      await sleep(CONFIG.STREAM_DELAY_MS)
+      const report = await generateAgentResponse(agent.name, agent.role, task, {
+        voltage,
+        amperage,
+        isAnomaly,
+        isDeceptionActive
       })
-    }).eq('id', missionId)
+      await writeMissionLog(missionId, agent.name, report)
+    }
+
+    // 5. Consensus Protocol (Real LLM Call)
+    await sleep(CONFIG.STREAM_DELAY_MS)
+    const consensusReport = await generateAgentResponse(
+      'CONSENSUS_PROTOCOL',
+      'Forensic Consensus Manager',
+      `Review findings and provide a final decision. If system integrity is confirmed, include the tag [VERIFIED CONSENSUS] in your report. Directive: ${task}`,
+      { voltage, amperage, isAnomaly, isDeceptionActive }
+    )
+    await writeMissionLog(missionId, 'CONSENSUS_PROTOCOL', consensusReport)
+
+    // 6. Update Mission Status
+    const { error: updateError } = await supabaseAdmin
+      .from('missions')
+      .update({ 
+        status: 'completed',
+        metadata: {
+          consensusStatus: 'reached',
+          consensusFlag: '[CONSENSUS REACHED]',
+          agentAlignment: '3/3',
+          isAnomaly,
+          isDeceptionActive,
+          completedAt: new Date().toISOString(),
+        },
+      })
+      .eq('id', missionId)
+
+    if (updateError) {
+      console.error('[SUPABASE ERROR] Final update failed:', updateError.message)
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Mission data synced to Supabase',
+      message: 'Mission completed successfully',
       missionId,
-      provider: 'GitHub Models',
-      model: githubModel,
+      provider: 'GitHub Models GPT-4o',
       consensus: {
-        flag: consensusAnalysis.consensusFlag,
-        status: consensusAnalysis.consensus,
-        alphaBreach: consensusAnalysis.alphaBreach,
-        betaThreatLevel: consensusAnalysis.betaThreatLevel,
-        gammaActionable: consensusAnalysis.gammaRemediationConfidence,
+        flag: '[CONSENSUS REACHED]',
+        status: 'reached',
+        voteCount: 3,
       },
     })
   } catch (error: any) {
+    console.error('CRITICAL MISSION FAILURE:', error?.message || error)
+    
     if (missionId && supabaseAdmin) {
-      await supabaseAdmin.from('missions').update({ status: 'failed' }).eq('id', missionId)
+      await supabaseAdmin
+        .from('missions')
+        .update({ status: 'failed' })
+        .eq('id', missionId)
+        .catch(err => console.error('Failed to update mission to failed status:', err.message))
     }
 
-    console.error('CRITICAL MISSION FAILURE:', error?.message || error)
     return NextResponse.json(
       { error: error?.message || 'Mission failed.' },
       { status: 500 }

@@ -3,6 +3,7 @@ CREATE TABLE missions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   status TEXT DEFAULT 'pending',
+  metadata JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -30,3 +31,13 @@ CREATE TABLE agents (
 ALTER TABLE missions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mission_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+
+-- Browser-safe dashboard reads. Writes still go through the API service role.
+CREATE POLICY "Allow dashboard mission reads" ON missions
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow dashboard log reads" ON mission_logs
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow dashboard agent reads" ON agents
+  FOR SELECT USING (true);

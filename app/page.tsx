@@ -26,6 +26,12 @@ import SiliconCanvas from '../components/hardware/SiliconCanvas'
 import { usePassport } from '../hooks/usePassport'
 import { SiliconPassport } from '../lib/silicon-passport'
 
+const SOFTWARE_AGENTS = [
+  { id: 'software-alpha', name: 'Agent_Alpha', role: 'Voltage telemetry analyst' },
+  { id: 'software-beta', name: 'Agent_Beta', role: 'Timing and health analyst' },
+  { id: 'software-gamma', name: 'Agent_Gamma', role: 'Logic remediation analyst' },
+]
+
 export default function Home() {
   return (
     <HardwareProvider>
@@ -84,9 +90,7 @@ function DashboardContent() {
 
   useEffect(() => {
     async function init() {
-      const { data: a } = await supabase.from('agents').select('*')
-      if (a) setAgents(a)
-      refreshLogs()
+      await refreshTelemetry()
     }
     init()
 
@@ -102,13 +106,34 @@ function DashboardContent() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!loading) {
+      return
+    }
+
+    const interval = window.setInterval(() => {
+      refreshTelemetry().catch((error) => {
+        console.error('Telemetry refresh failed:', error)
+      })
+    }, 300)
+
+    return () => window.clearInterval(interval)
+  }, [loading])
+
+  const refreshTelemetry = async () => {
+    const res = await fetch('/api/telemetry', { cache: 'no-store' })
+    if (!res.ok) {
+      setAgents(SOFTWARE_AGENTS)
+      return
+    }
+
+    const data = await res.json()
+    setAgents(data.agents?.length ? data.agents : SOFTWARE_AGENTS)
+    setLogs(data.logs || [])
+  }
+
   const refreshLogs = async () => {
-    const { data: l } = await supabase
-      .from('mission_logs')
-      .select('*, missions(title)')
-      .order('created_at', { ascending: false })
-      .limit(15)
-    if (l) setLogs(l)
+    await refreshTelemetry()
   }
 
   const generateRandomMetrics = () => {
@@ -149,6 +174,7 @@ function DashboardContent() {
 
   const activeAgents = agents.length
   const latestLog = logs[0]
+  const latestConsensusLog = logs.find((log) => log.agent_name === 'CONSENSUS_PROTOCOL')
   const onlinePulse = latestLog ? 'bg-emerald-400' : 'bg-red-500'
   const sysHealth = activeAgents > 0 ? '99.9%' : '84.2%'
   const statusCards = [
@@ -369,6 +395,7 @@ function DashboardContent() {
                 <AnimatePresence>
                   {logs.map((log, idx) => {
                     const displayId = (logs.length - idx).toString().padStart(3, '0');
+                    const logTone = getLogTone(log)
                     return (
                     <motion.div
                       key={log.id}
@@ -379,39 +406,18 @@ function DashboardContent() {
                     >
                       {/* Timeline Track */}
                       <div className="relative flex flex-col items-center flex-shrink-0">
-                        <div className={`h-2.5 w-2.5 rounded-full z-10 my-1.5 ${
-                          idx === 0 && log.agent_name !== 'Agent_Gamma' && log.agent_name !== 'AGENT_HONEY' ? 'bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
-                          : log.agent_name === 'Agent_Gamma' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
-                          : log.agent_name === 'AGENT_HONEY' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]'
-                          : 'bg-emerald-500/30'
-                        }`} />
-                        <div className={`w-[1.5px] h-full absolute top-3 group-last:hidden ${
-                          log.agent_name === 'Agent_Gamma' ? 'bg-amber-500/20' : log.agent_name === 'AGENT_HONEY' ? 'bg-purple-500/20' : 'bg-emerald-500/10'
-                        }`} />
+                        <div className={`h-2.5 w-2.5 rounded-full z-10 my-1.5 ${getTimelineDotClass(logTone, idx === 0)}`} />
+                        <div className={`w-[1.5px] h-full absolute top-3 group-last:hidden ${getTimelineLineClass(logTone)}`} />
                       </div>
 
                       {/* Content Card */}
-                      <div className={`flex-1 rounded-[12px] border px-3 py-2.5 backdrop-blur-sm transition-all hover:bg-[#151515]/80 ${
-                        log.agent_name === 'Agent_Gamma' 
-                        ? 'bg-[#201004]/50 border-amber-500/30 text-amber-500'
-                        : log.agent_name === 'AGENT_HONEY'
-                        ? 'bg-[#1a0033]/50 border-purple-500/30 text-purple-300'
-                        : 'bg-[#111111]/60 border-white/[0.04] hover:border-white/10'
-                      }`}>
-                        <div className={`mb-2 flex flex-wrap items-center justify-between gap-2 border-b pb-2 ${
-                          log.agent_name === 'Agent_Gamma' ? 'border-amber-500/10' : log.agent_name === 'AGENT_HONEY' ? 'border-purple-500/10' : 'border-white/5'
-                        }`}>
+                      <div className={`flex-1 rounded-[12px] border px-3 py-2.5 backdrop-blur-sm transition-all hover:bg-[#151515]/80 ${getLogCardClass(logTone)}`}>
+                        <div className={`mb-2 flex flex-wrap items-center justify-between gap-2 border-b pb-2 ${getLogDividerClass(logTone)}`}>
                           <div className="flex items-center gap-2 text-[12px] font-bold">
-                            <span className={`text-[11px] font-mono ${log.agent_name === 'Agent_Gamma' ? 'text-amber-500/80' : log.agent_name === 'AGENT_HONEY' ? 'text-purple-400/80' : 'text-zinc-600'}`}>
+                            <span className={`text-[11px] font-mono ${getLogIndexClass(logTone)}`}>
                               #{displayId}
                             </span>
-                            <span className={`text-[11px] border px-1.5 py-0.5 rounded uppercase font-bold ${
-                              log.agent_name === 'Agent_Gamma' 
-                              ? 'text-amber-400 bg-amber-500/10 border-amber-500/30'
-                              : log.agent_name === 'AGENT_HONEY'
-                              ? 'text-purple-400 bg-purple-500/10 border-purple-500/30'
-                              : 'text-emerald-500 bg-emerald-500/5 border-emerald-500/20'
-                            }`}>
+                            <span className={`text-[11px] border px-1.5 py-0.5 rounded uppercase font-bold ${getLogBadgeClass(logTone)}`}>
                               {log.agent_name}
                             </span>
                           </div>
@@ -460,7 +466,11 @@ function DashboardContent() {
             transition={{ duration: 0.6, delay: 0.05 }}
             className="glass-card rounded-[16px] p-3 shrink-0"
           >
-            <ConsensusMeter consensusStatus={loading ? 'executing' : ''} isDeceptionActive={isDeceptionActive} />
+            <ConsensusMeter
+              consensusStatus={loading ? 'executing' : ''}
+              isDeceptionActive={isDeceptionActive}
+              consensusOutput={latestConsensusLog?.output_data}
+            />
           </motion.div>
 
           {/* Mission Control */}
@@ -563,7 +573,7 @@ function DashboardContent() {
               <h2 className="text-lg font-bold text-emerald-500">Threat Matrix</h2>
             </div>
             <div className="w-full relative z-10 flex-1 min-h-0" style={{ transform: 'scale(0.95)', transformOrigin: 'top center' }}>
-              <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={180} minHeight={180}>
                 <RadarChart data={threatMetrics} outerRadius="65%">
                   <PolarGrid stroke="rgba(16,185,129,0.15)" strokeDasharray="4 4" />
                   <PolarAngleAxis 
@@ -621,6 +631,96 @@ function truncateHash(value: string) {
 
   const normalized = value.startsWith('0x') ? value : `0x${value}`
   return `${normalized.slice(0, 5)}...${normalized.slice(-2)}`
+}
+
+type LogTone = 'nominal' | 'warning' | 'deception'
+
+function getLogTone(log: any): LogTone {
+  const output = String(log.output_data || log.input_data || '')
+
+  if (log.agent_name === 'AGENT_HONEY' || output.includes('[DECEPTION]')) {
+    return 'deception'
+  }
+
+  if (output.includes('[WARNING]')) {
+    return 'warning'
+  }
+
+  return 'nominal'
+}
+
+function getTimelineDotClass(tone: LogTone, isLatest: boolean) {
+  if (tone === 'deception') {
+    return 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]'
+  }
+
+  if (tone === 'warning') {
+    return 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+  }
+
+  return isLatest
+    ? 'bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
+    : 'bg-emerald-500/30'
+}
+
+function getTimelineLineClass(tone: LogTone) {
+  if (tone === 'deception') {
+    return 'bg-purple-500/20'
+  }
+
+  if (tone === 'warning') {
+    return 'bg-amber-500/20'
+  }
+
+  return 'bg-emerald-500/10'
+}
+
+function getLogCardClass(tone: LogTone) {
+  if (tone === 'deception') {
+    return 'bg-[#1a0033]/50 border-purple-500/30 text-purple-300'
+  }
+
+  if (tone === 'warning') {
+    return 'bg-[#201004]/50 border-amber-500/30 text-amber-500'
+  }
+
+  return 'bg-[#111111]/60 border-white/[0.04] hover:border-white/10'
+}
+
+function getLogDividerClass(tone: LogTone) {
+  if (tone === 'deception') {
+    return 'border-purple-500/10'
+  }
+
+  if (tone === 'warning') {
+    return 'border-amber-500/10'
+  }
+
+  return 'border-white/5'
+}
+
+function getLogIndexClass(tone: LogTone) {
+  if (tone === 'deception') {
+    return 'text-purple-400/80'
+  }
+
+  if (tone === 'warning') {
+    return 'text-amber-500/80'
+  }
+
+  return 'text-zinc-600'
+}
+
+function getLogBadgeClass(tone: LogTone) {
+  if (tone === 'deception') {
+    return 'text-purple-400 bg-purple-500/10 border-purple-500/30'
+  }
+
+  if (tone === 'warning') {
+    return 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+  }
+
+  return 'text-emerald-500 bg-emerald-500/5 border-emerald-500/20'
 }
 
 function AnomalyControl() {
@@ -700,7 +800,15 @@ function PowerRail({ isDeceptionActive }: { isDeceptionActive: boolean }) {
   )
 }
 
-function ConsensusMeter({ consensusStatus, isDeceptionActive }: { consensusStatus?: string, isDeceptionActive?: boolean }) {
+function ConsensusMeter({
+  consensusStatus,
+  isDeceptionActive,
+  consensusOutput,
+}: {
+  consensusStatus?: string
+  isDeceptionActive?: boolean
+  consensusOutput?: string
+}) {
   const [agentVotes, setAgentVotes] = useState({ alpha: 0, beta: 0, gamma: 0 })
 
   useEffect(() => {
@@ -721,7 +829,20 @@ function ConsensusMeter({ consensusStatus, isDeceptionActive }: { consensusStatu
         clearTimeout(timer3)
       }
     }
-  }, [consensusStatus, isDeceptionActive])
+
+    if (consensusOutput) {
+      const majorityMatch = consensusOutput.match(/Majority Rule:\s*(\d)\/3/i)
+      const voteCount = majorityMatch ? Number(majorityMatch[1]) : consensusOutput.includes('[VERIFIED CONSENSUS]') ? 3 : 0
+      setAgentVotes({
+        alpha: voteCount >= 1 ? 1 : 0,
+        beta: voteCount >= 2 ? 1 : 0,
+        gamma: voteCount >= 3 ? 1 : 0,
+      })
+      return
+    }
+
+    setAgentVotes({ alpha: 0, beta: 0, gamma: 0 })
+  }, [consensusStatus, isDeceptionActive, consensusOutput])
 
   const totalVotes = agentVotes.alpha + agentVotes.beta + agentVotes.gamma
   const consensusPercent = (totalVotes / 3) * 100
